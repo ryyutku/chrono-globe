@@ -1,0 +1,6 @@
+- A function that returns the zoneinfo list.
+- A function that returns the pytz list.
+- A function that takes a string and returns True/False for "is this loadable."
+- A function that prints a comparison of the two lists.
+- A function that prints N random zones.
+- A function that runs validation on a curated set of inputs.
