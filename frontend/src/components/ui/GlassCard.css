@@ -1,0 +1,190 @@
+/* src/components/ui/GlassCard.css
+   ----------------------------------------------------------------------
+   Layers, from bottom to top:
+   1. .glass-card          — the surface (backdrop blur + tint)
+   2. .glass-card::before  — bright specular spots (light inside glass)
+   3. .glass-card::after   — refracted edge rim (light bending at border)
+   4. .glass-card__sheen   — diagonal highlight sweeping the surface
+   5. active/pressed state — squeeze + burst pseudo layer
+   ---------------------------------------------------------------------- */
+
+.glass-card {
+  position: relative;
+  isolation: isolate;
+
+  background: var(--glass-tint);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+
+  border: 1px solid var(--glass-border);
+  border-radius: 22px;
+  overflow: hidden;
+
+  /* Popped-up depth: layered shadows, NOT one big blur */
+  box-shadow:
+    /* deep ambient shadow (floats the card off the page) */
+    0 20px 50px -12px var(--glass-shadow-deep),
+    /* mid-range soft shadow */
+    0 8px 20px -8px var(--glass-shadow-soft),
+    /* top inner specular (light hitting the top edge) */
+    inset 0 1px 0 var(--glass-highlight-top),
+    /* bottom inner shadow (grounding the glass) */
+    inset 0 -1px 0 var(--glass-highlight-bottom),
+    /* faint gold rim glow */
+    0 0 0 1px var(--glass-gold-glow);
+
+  transition:
+    transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 260ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    border-color 200ms ease;
+  will-change: transform, box-shadow;
+}
+
+/* Hover: rises slightly, gold rim warms up */
+.glass-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--glass-border-strong);
+  box-shadow:
+    0 28px 60px -14px var(--glass-shadow-deep),
+    0 12px 26px -10px var(--glass-shadow-soft),
+    inset 0 1px 0 var(--glass-highlight-top),
+    inset 0 -1px 0 var(--glass-highlight-bottom),
+    0 0 0 1px var(--glass-gold-glow-strong);
+}
+
+/* ---------------------------------------------------------------------
+   LAYER 2 — bright spots inside the glass
+   Two soft radial "glints", top-left and bottom-right.
+   --------------------------------------------------------------------- */
+.glass-card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 1;
+  background:
+    radial-gradient(
+      40% 30% at 18% 12%,
+      rgba(255, 255, 255, 0.45) 0%,
+      rgba(255, 255, 255, 0.10) 35%,
+      transparent 70%
+    ),
+    radial-gradient(
+      30% 22% at 88% 92%,
+      rgba(255, 255, 255, 0.28) 0%,
+      transparent 70%
+    );
+  mix-blend-mode: screen;
+}
+
+/* ---------------------------------------------------------------------
+   LAYER 3 — refracted rim
+   Bright edge glow on top/left, dim on bottom/right, so the border
+   reads as light bending around a curved glass shape.
+   --------------------------------------------------------------------- */
+.glass-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 2;
+  box-shadow:
+    inset 1px 1px 0 rgba(255, 255, 255, 0.55),
+    inset -1px -1px 0 rgba(255, 255, 255, 0.08),
+    inset 0 0 24px rgba(255, 255, 255, 0.06);
+  /* inner light bleeding inward from the edges */
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255, 255, 255, 0.18) 0%,
+      transparent 30%,
+      transparent 70%,
+      rgba(212, 175, 55, 0.10) 100%
+    );
+}
+
+/* ---------------------------------------------------------------------
+   LAYER 4 — diagonal sheen (optional, subtle)
+   --------------------------------------------------------------------- */
+.glass-card__sheen {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: 3;
+  background: linear-gradient(
+    115deg,
+    transparent 30%,
+    rgba(255, 255, 255, 0.08) 48%,
+    transparent 62%
+  );
+  opacity: 0.9;
+}
+
+/* ---------------------------------------------------------------------
+   CONTENT — must sit above all the layers
+   --------------------------------------------------------------------- */
+.glass-card__content {
+  position: relative;
+  z-index: 4;
+}
+
+/* ---------------------------------------------------------------------
+   LAYER 5 — Bubble tension + burst
+   On press: the card squeezes slightly (like a soap bubble under pressure),
+   and a soft radial "burst" rings out from the click point.
+   --------------------------------------------------------------------- */
+
+.glass-card {
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.glass-card:active {
+  /* The squeeze: card shrinks, glow intensifies */
+  transform: translateY(0) scale(0.985);
+  transition:
+    transform 90ms cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 90ms ease;
+  box-shadow:
+    0 8px 18px -8px var(--glass-shadow-deep),
+    inset 0 1px 0 var(--glass-highlight-top),
+    inset 0 -2px 6px rgba(0, 0, 0, 0.08),
+    0 0 0 1px var(--glass-gold-glow-strong),
+    0 0 24px rgba(212, 175, 55, 0.35);
+}
+
+/* The burst: a ring that expands from the card and fades. */
+.glass-card--burst::after {
+  animation: glass-burst 480ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+@keyframes glass-burst {
+  0% {
+    box-shadow:
+      inset 0 0 0 0 rgba(255, 255, 255, 0.6),
+      0 0 0 0 rgba(212, 175, 55, 0.55);
+    opacity: 1;
+  }
+  100% {
+    box-shadow:
+      inset 0 0 0 0 rgba(255, 255, 255, 0),
+      0 0 0 22px rgba(212, 175, 55, 0);
+    opacity: 1;
+  }
+}
+
+/* Respect users who prefer reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .glass-card,
+  .glass-card:hover,
+  .glass-card:active {
+    transition: none;
+    transform: none;
+  }
+  .glass-card--burst::after {
+    animation: none;
+  }
+}

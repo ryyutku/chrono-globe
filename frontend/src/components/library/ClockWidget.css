@@ -1,0 +1,71 @@
+.clock-widget-container {
+  min-height: 220px;
+}
+
+.analog-dial {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.8), rgba(245, 240, 225, 0.5));
+  border: 1.5px solid rgba(212, 175, 55, 0.35);
+  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05), 0 4px 12px rgba(212, 175, 55, 0.1);
+  position: relative;
+}
+
+.dial-hand {
+  position: absolute;
+  bottom: 50%;
+  left: 50%;
+  transform-origin: bottom center;
+  border-radius: 999px;
+}
+
+.dial-hand-hour {
+  width: 3.5px;
+  height: 32px;
+  background: #332b1d;
+  margin-left: -1.75px;
+}
+
+.dial-hand-minute {
+  width: 2px;
+  height: 44px;
+  background: #5e4f35;
+  margin-left: -1px;
+}
+
+.dial-hand-second {
+  width: 1px;
+  height: 48px;
+  background: #d4af37;
+  margin-left: -0.5px;
+}
+
+.dial-pin {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #d4af37;
+  transform: translate(-50%, -50%);
+  box-shadow: 0 0 2px rgba(0, 0, 0, 0.3);
+}
+
+.clock-digital-digits {
+  font-feature-settings: 'tnum';
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.clock-remove-btn {
+  opacity: 0.35;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.clock-remove-btn:hover {
+  opacity: 1;
+  color: #c53030;
+  transform: scale(1.1);
+}

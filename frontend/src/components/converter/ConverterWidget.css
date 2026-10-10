@@ -1,0 +1,128 @@
+/* Container Card */
+.converter-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
+  width: 100%;
+  max-width: 900px;
+  padding: 2.5rem;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(238, 219, 187, 0.6);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.04);
+}
+
+/* Left & Right columns */
+.converter-panel {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.converter-label {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
+  color: #7d7260;
+}
+
+.converter-input {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+  border-radius: 12px;
+  border: 1px solid rgba(238, 219, 187, 0.8);
+  background: rgba(255, 255, 255, 0.7);
+  outline: none;
+}
+
+.converter-input:focus {
+  border-color: #d4af37;
+  background: #ffffff;
+}
+
+/* Dropdown list for search candidates */
+.converter-dropdown {
+  position: absolute;
+  top: 75px;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #eedbbb;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+  max-height: 180px;
+  overflow-y: auto;
+  list-style: none;
+  padding: 0.5rem 0;
+  margin: 0;
+}
+
+.converter-dropdown li {
+  padding: 0.5rem 1rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+
+.converter-dropdown li:hover {
+  background: #f9f1d7;
+}
+
+/* Arrow between cards */
+.converter-divider {
+  font-size: 2rem;
+  color: #c9b183;
+  user-select: none;
+}
+
+/* Digital Clock Numbers */
+.clock-readout {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem 1rem;
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  margin-top: 0.5rem;
+}
+
+.clock-time {
+  font-size: 2.75rem;
+  font-weight: 300;
+  letter-spacing: -0.02em;
+  color: #2b2313;
+  font-variant-numeric: tabular-nums;
+}
+
+.clock-date {
+  font-size: 0.85rem;
+  color: #7d7260;
+  margin-top: 0.25rem;
+}
+
+.clock-zone-name {
+  font-size: 0.75rem;
+  color: #a3957f;
+  margin-top: 0.25rem;
+}
+
+/* Mobile responsive stacked layout */
+@media (max-width: 768px) {
+  .converter-card {
+    flex-direction: column;
+    padding: 1.5rem;
+  }
+  .converter-divider {
+    transform: rotate(90deg);
+  }
+}
