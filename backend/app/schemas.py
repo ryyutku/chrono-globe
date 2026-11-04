@@ -1,3 +1,5 @@
+# backend/app/schemas.py
+
 """
 app/schemas.py — Pydantic models for request/response validation
 """
