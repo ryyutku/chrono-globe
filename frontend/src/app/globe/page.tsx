@@ -1,5 +1,5 @@
-import GlobeView from "@/components/globe/GlobeView";
+import { redirect } from "next/navigation";
 
 export default function GlobePage() {
-    return <GlobeView />;
+    redirect("/zones");
 }

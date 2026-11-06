@@ -7,7 +7,6 @@ export const navConfig: NavConfig = {
     href: "/",
   },
   items: [
-    { label: "Globe", href: "/globe" },
     { label: "World Clocks", href: "/clocks" },
     { label: "Meeting Planner", href: "/planner" },
     { label: "Timezones", href: "/zones" },
