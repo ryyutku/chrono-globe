@@ -1,22 +1,39 @@
+/* src/components/globe/LiveClock.css */
+
 .live-clock {
-    margin-top: 12px;
-    padding-top: 10px;
-    border-top: 1px solid rgba(212, 175, 55, 0.3);
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: rgba(24, 24, 27, 0.6);
+    border: 1px solid rgba(39, 39, 42, 0.7);
+    transition: border-color 0.15s ease;
+}
+
+.live-clock:hover {
+    border-color: rgba(63, 63, 70, 0.9);
 }
 
 .live-clock__zone {
-    font-size: 12px;
-    opacity: 0.7;
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #a1a1aa;
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .live-clock__time {
-    font-size: 30px;
-    font-family: ui-monospace, monospace;
-    color: #8a6d0b;
-    font-weight: 600;
+    font-size: 26px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: -0.02em;
 }
 
 .live-clock__meta {
     font-size: 12px;
-    opacity: 0.7;
+    color: #71717a;
+    margin-top: 2px;
 }

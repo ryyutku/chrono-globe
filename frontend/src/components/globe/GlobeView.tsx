@@ -37,7 +37,6 @@ function center(geometry: any) {
 
 export default function GlobeView() {
     const [countries, setCountries] = useState<any[]>([]);
-    // LATER: replace this pins state with the Zustand store (src/lib/store.ts)
     const [pins, setPins] = useState<Pin[]>([]);
     const [selected, setSelected] = useState<Selected | null>(null);
     const [hovered, setHovered] = useState<any>(null);
@@ -50,13 +49,14 @@ export default function GlobeView() {
     useEffect(() => {
         fetch("/countries.geojson")
             .then((r) => r.json())
-            .then((d) => setCountries(d.features));
+            .then((d) => setCountries(d.features))
+            .catch((err) => console.error("Failed to load countries.geojson", err));
     }, []);
 
-    // Keep the globe full-screen
+    // Keep the globe full-screen under navbar (h-16 = 64px)
     useEffect(() => {
         const update = () =>
-            setSize({ w: window.innerWidth, h: window.innerHeight });
+            setSize({ w: window.innerWidth, h: Math.max(window.innerHeight - 64, 400) });
         update();
         window.addEventListener("resize", update);
         return () => window.removeEventListener("resize", update);
@@ -68,7 +68,7 @@ export default function GlobeView() {
 
     function addZonePin() {
         if (!chosenZone) return;
-        const info = getAllTimezones()[chosenZone];
+        const info = (getAllTimezones() as Record<string, any>)[chosenZone];
         const firstCountry = info?.countries?.[0];
         const feature = countries.find((f) => codeOf(f.properties) === firstCountry);
         if (!feature) {
@@ -88,13 +88,15 @@ export default function GlobeView() {
                 backgroundColor="rgba(0,0,0,0)"
                 polygonsData={countries}
                 polygonCapColor={(d: any) =>
-                    d === hovered ? "rgba(212,175,55,0.45)" : "rgba(255,255,255,0.05)"
+                    d === hovered ? "rgba(56, 189, 248, 0.35)" : "rgba(255, 255, 255, 0.05)"
                 }
                 polygonSideColor={() => "rgba(0,0,0,0)"}
-                polygonStrokeColor={() => "rgba(255,255,255,0.4)"}
+                polygonStrokeColor={() => "rgba(255, 255, 255, 0.25)"}
                 polygonAltitude={0.01}
                 polygonsTransitionDuration={150}
-                polygonLabel={(p: any) => p.properties.NAME}
+                polygonLabel={(p: any) =>
+                    `<div style="background: rgba(9,9,11,0.9); color: #f4f4f5; padding: 4px 10px; border-radius: 6px; font-size: 12px; border: 1px solid #27272a; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">${p.properties.NAME}</div>`
+                }
                 onPolygonHover={(p: any) => setHovered(p)}
                 onPolygonClick={(poly: any, _event: MouseEvent, coords: any) => {
                     const country = getCountry(codeOf(poly.properties));
@@ -108,13 +110,13 @@ export default function GlobeView() {
                 labelText={(d: any) => d.tz}
                 labelSize={1.3}
                 labelDotRadius={0.5}
-                labelColor={() => "#f3d77a"}
+                labelColor={() => "#38bdf8"}
                 labelAltitude={0.02}
             />
 
             {/* Left panel: time zone selector and pin list */}
             <GlassCard className="globe-panel globe-panel--left">
-                <div className="globe-panel__title">Add a time zone</div>
+                <div className="globe-panel__title">Pin a Timezone</div>
                 <select
                     className="globe-select"
                     value={chosenZone}
@@ -128,25 +130,28 @@ export default function GlobeView() {
                     ))}
                 </select>
                 <button className="globe-btn" onClick={addZonePin}>
-                    Add pin
+                    Add pin to globe
                 </button>
 
                 {pins.length > 0 && (
                     <div className="globe-pins">
-                        <div className="globe-panel__title">Pins</div>
-                        {pins.map((p) => (
-                            <div key={p.id} className="globe-pin-row">
-                                <span>{p.tz}</span>
-                                <button
-                                    className="globe-x"
-                                    onClick={() => setPins(pins.filter((x) => x.id !== p.id))}
-                                >
-                                    ✕
-                                </button>
-                            </div>
-                        ))}
+                        <div className="globe-panel__title">Pinned Locations ({pins.length})</div>
+                        <div className="globe-pins__list">
+                            {pins.map((p) => (
+                                <div key={p.id} className="globe-pin-row">
+                                    <span title={p.tz}>{p.tz}</span>
+                                    <button
+                                        className="globe-x"
+                                        onClick={() => setPins(pins.filter((x) => x.id !== p.id))}
+                                        title="Remove pin"
+                                    >
+                                        ✕
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
                         <button className="globe-btn globe-btn--ghost" onClick={() => setPins([])}>
-                            Clear all
+                            Clear all pins
                         </button>
                     </div>
                 )}
@@ -161,10 +166,15 @@ export default function GlobeView() {
                             ✕
                         </button>
                     </div>
-                    {selected.tzs.length === 0 && <div>No time zone data found.</div>}
-                    {selected.tzs.map((tz) => (
-                        <LiveClock key={tz} tzid={tz} />
-                    ))}
+                    {selected.tzs.length === 0 ? (
+                        <div className="text-xs text-zinc-400 py-2">No time zone data found.</div>
+                    ) : (
+                        <div className="globe-clocks-scroll">
+                            {selected.tzs.map((tz) => (
+                                <LiveClock key={tz} tzid={tz} />
+                            ))}
+                        </div>
+                    )}
                 </GlassCard>
             )}
         </div>
