@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import dynamic from "next/dynamic";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getCountry, getAllTimezones } from "countries-and-timezones";
 import { GlassCard } from "../ui/GlassCard";
 import LiveClock from "./LiveClock";
@@ -36,6 +36,7 @@ function center(geometry: any) {
 }
 
 export default function GlobeView() {
+    const globeRef = useRef<any>(null);
     const [countries, setCountries] = useState<any[]>([]);
     const [pins, setPins] = useState<Pin[]>([]);
     const [selected, setSelected] = useState<Selected | null>(null);
@@ -44,6 +45,27 @@ export default function GlobeView() {
     const [chosenZone, setChosenZone] = useState("");
 
     const allZones = useMemo(() => Object.keys(getAllTimezones()).sort(), []);
+
+    // Zoom limits: minDistance prevents clipping into surface, maxDistance prevents earth becoming tiny
+    const configureControls = () => {
+        if (!globeRef.current) return;
+        const controls = globeRef.current.controls?.();
+        if (controls) {
+            controls.minDistance = 130; // Close-up zoom limit (sphere radius = 100)
+            controls.maxDistance = 380; // Zoom-out limit so earth stays well-sized
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+        }
+    };
+
+    const handleGlobeReady = () => {
+        configureControls();
+        globeRef.current?.pointOfView?.({ altitude: 2.2 });
+    };
+
+    useEffect(() => {
+        configureControls();
+    }, []);
 
     // Load country shapes
     useEffect(() => {
@@ -82,9 +104,12 @@ export default function GlobeView() {
     return (
         <div className="globe-page">
             <Globe
+                ref={globeRef}
                 width={size.w}
                 height={size.h}
-                globeImageUrl="//unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
+                globeImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg"
+                backgroundImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png"
+                onGlobeReady={handleGlobeReady}
                 backgroundColor="rgba(0,0,0,0)"
                 polygonsData={countries}
                 polygonCapColor={(d: any) =>
