@@ -1,48 +1,41 @@
 // src/app/clocks/page.tsx
-
 "use client";
 
-import { useEffect, useState } from "react";
 import { Container } from "@/components/layout/Container";
 import { ClockCard } from "@/components/ui/ClockCard";
 import { useSavedClocks } from "@/lib/hooks/useSavedClocks";
-import { ZoneCandidate } from "@/types/timezone";
-import { resolveZone } from "@/lib/api/timezone";
-import { Toast } from "@/components/ui/Toast";
 import Link from "next/link";
-
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 
 export default function WorldClocksPage() {
   const { pairs, removeClockPair, isLoaded } = useSavedClocks();
 
   if (!isLoaded) {
     return (
-      <main className="min-h-screen bg-zinc-950 py-16 text-zinc-100">
+      <main className="min-h-screen bg-[#08090C] py-16 text-[#F4F5F8]">
         <Container>
-          <div className="text-sm text-zinc-500">Loading your saved clocks...</div>
+          <div className="text-sm text-[#737680]">Loading saved clocks...</div>
         </Container>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 py-12 text-zinc-100">
+    <main className="min-h-screen bg-[#08090C] py-12 text-[#F4F5F8]">
       <Container>
         {/* Header */}
-        <div className="flex flex-col gap-2 border-b border-zinc-800 pb-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-2 border-b border-white/[0.08] pb-8 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
               World Clocks
             </h1>
-            <p className="mt-1 text-sm text-zinc-400">
-              Live conversions between your origin and destination timezones.
+            <p className="mt-1 text-sm text-[#A0A2AC]">
+              Real-time synchronized clocks between your saved timezone corridors.
             </p>
           </div>
 
           <Link
             href="/"
-            className="self-start rounded-lg bg-zinc-800 px-3.5 py-2 text-xs font-medium text-zinc-200 hover:bg-zinc-700 hover:text-white transition"
+            className="liquid-glass-l3 self-start rounded-full px-4 py-2 text-xs font-semibold text-[#F4F5F8] hover:text-white transition"
           >
             + New Conversion
           </Link>
@@ -51,14 +44,14 @@ export default function WorldClocksPage() {
         {/* Clocks Grid */}
         <div className="mt-8">
           {pairs.length === 0 ? (
-            <div className="rounded-2xl border border-dashed border-zinc-800 p-12 text-center">
+            <div className="liquid-glass-l1 rounded-3xl p-12 text-center border-dashed border-white/10">
               <h3 className="font-semibold text-white">No saved conversions yet</h3>
-              <p className="mt-1 text-sm text-zinc-500">
-                Use the converter on the homepage to save a timezone pair.
+              <p className="mt-1 text-sm text-[#737680]">
+                Convert a timezone on the home page and save it here.
               </p>
               <Link
                 href="/"
-                className="mt-4 inline-block text-sm text-zinc-300 underline hover:text-white"
+                className="mt-4 inline-block text-xs font-semibold text-[#65DDF2] underline hover:text-white"
               >
                 Go to Converter
               </Link>

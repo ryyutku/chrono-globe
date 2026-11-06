@@ -1,27 +1,66 @@
 // src/components/ui/FlipDigit.tsx
 
-interface FlipDigitProps {
-  value: string;
-  label?: string;
+
+"use client";
+
+import { useEffect, useState, useRef } from "react";
+
+interface FlipCardProps {
+  digit: string;
 }
 
-export function FlipDigit({ value, label }: FlipDigitProps) {
+export function FlipCard({ digit }: FlipCardProps) {
+  const [cur, setCur] = useState(digit);
+  const [target, setTarget] = useState(digit);
+  const [flipping, setFlipping] = useState(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    // Only flip if digit actually changed
+    if (digit !== cur) {
+      setTarget(digit);
+      setFlipping(true);
+
+      if (timerRef.current) clearTimeout(timerRef.current);
+
+      // Match the 640ms timeout from your snippet (.3s fold + .3s unfold)
+      timerRef.current = setTimeout(() => {
+        setCur(digit);
+        setFlipping(false);
+      }, 640);
+    }
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [digit, cur]);
+
   return (
-    <div className="flex flex-col items-center">
-      {/* 
-        This wrapper is styled like an airport split-flap display card.
-        When you're ready to add the flip animation, you only modify this element.
-      */}
-      <div className="relative flex h-14 w-12 items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 font-mono text-2xl font-bold text-white shadow-inner sm:h-16 sm:w-14 sm:text-3xl">
-        <span>{value}</span>
-        {/* Subtle horizontal crease line mimicking split-flap boards */}
-        <div className="absolute inset-x-0 top-1/2 h-[1px] bg-zinc-950/80 pointer-events-none" />
-      </div>
-      {label && (
-        <span className="mt-1 text-[10px] uppercase tracking-wider text-zinc-500 font-semibold">
-          {label}
-        </span>
+    <span className={`cnc-12__card ${flipping ? "is-flip" : ""}`} data-d={digit}>
+      {/* 1. Static Top: shows the NEXT digit waiting underneath */}
+      <span className="cnc-12__half cnc-12__half--t">
+        <span>{flipping ? target : cur}</span>
+      </span>
+
+      {/* 2. Static Bottom: shows CURRENT digit until covered */}
+      <span className="cnc-12__half cnc-12__half--b">
+        <span>{cur}</span>
+      </span>
+
+      {/* 3. Moving Leaves: only mounted during the flip transition */}
+      {flipping && (
+        <>
+          {/* Top Leaf folds down from 0 -> -90deg */}
+          <span className="cnc-12__half cnc-12__half--t cnc-12__leaf cnc-12__leaf--t">
+            <span>{cur}</span>
+          </span>
+
+          {/* Bottom Leaf unfolds from 90 -> 0deg */}
+          <span className="cnc-12__half cnc-12__half--b cnc-12__leaf cnc-12__leaf--b">
+            <span>{target}</span>
+          </span>
+        </>
       )}
-    </div>
+    </span>
   );
 }
