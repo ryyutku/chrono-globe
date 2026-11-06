@@ -46,42 +46,6 @@
     margin-bottom: 10px;
 }
 
-.globe-texture-tabs {
-    display: flex;
-    gap: 4px;
-    padding: 3px;
-    background: rgba(9, 9, 11, 0.7);
-    border: 1px solid #27272a;
-    border-radius: 8px;
-    margin-bottom: 16px;
-}
-
-.globe-texture-tab {
-    flex: 1;
-    padding: 5px 6px;
-    font-size: 11px;
-    font-weight: 500;
-    border-radius: 6px;
-    border: none;
-    background: transparent;
-    color: #a1a1aa;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    white-space: nowrap;
-    text-align: center;
-}
-
-.globe-texture-tab:hover {
-    color: #f4f4f5;
-}
-
-.globe-texture-tab--active {
-    background: #27272a;
-    color: #ffffff;
-    font-weight: 600;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4);
-}
-
 .globe-select {
     width: 100%;
     padding: 9px 12px;
