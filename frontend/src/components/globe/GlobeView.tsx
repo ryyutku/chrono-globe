@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import dynamic from "next/dynamic";
+import * as THREE from "three";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getCountry, getAllTimezones } from "countries-and-timezones";
 import { GlassCard } from "../ui/GlassCard";
@@ -61,6 +62,11 @@ export default function GlobeView() {
     const handleGlobeReady = () => {
         configureControls();
         globeRef.current?.pointOfView?.({ altitude: 2.2 });
+
+        const material = globeRef.current?.globeMaterial?.();
+        if (material) {
+            material.color.setRGB(1.35, 1.35, 1.35);
+        }
     };
 
     useEffect(() => {
@@ -107,7 +113,7 @@ export default function GlobeView() {
                 ref={globeRef}
                 width={size.w}
                 height={size.h}
-                globeImageUrl="/textures/earth-day.jpg"
+                globeImageUrl="https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
                 backgroundImageUrl="/textures/night-sky.png"
                 atmosphereColor="#60a5fa"
                 atmosphereAltitude={0.18}
@@ -118,7 +124,7 @@ export default function GlobeView() {
                     d === hovered ? "rgba(56, 189, 248, 0.35)" : "rgba(0, 0, 0, 0)"
                 }
                 polygonSideColor={() => "rgba(0,0,0,0)"}
-                polygonStrokeColor={() => "rgba(255, 255, 255, 0.4)"}
+                polygonStrokeColor={() => "rgba(255, 255, 255, 0.12)"}
                 polygonAltitude={0.005}
                 polygonsTransitionDuration={150}
                 polygonLabel={(p: any) =>
