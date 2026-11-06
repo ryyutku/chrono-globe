@@ -15,6 +15,55 @@ const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 type Pin = { id: string; lat: number; lng: number; tz: string };
 type Selected = { name: string; tzs: string[] };
 
+function HourglassIcon({ className = "" }: { className?: string }) {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 32 32"
+            fill="none"
+            className={className}
+        >
+            <defs>
+                <linearGradient id="hourglass-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#38bdf8" />
+                    <stop offset="100%" stopColor="#818cf8" />
+                </linearGradient>
+            </defs>
+            {/* Hourglass Outer Frame */}
+            <path
+                d="M8 4h16M8 28h16M10 4c0 6 6 8 6 12s-6 6-6 12h12c0-6-6-8-6-12s6-6 6-12H10z"
+                stroke="url(#hourglass-gradient)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+            />
+            {/* Upper Sand Reservoir */}
+            <path
+                d="M12 9c1.5 2 3.5 3 4 3s2.5-1 4-3H12z"
+                fill="url(#hourglass-gradient)"
+                opacity="0.9"
+            />
+            {/* Flowing Sand Stream */}
+            <line
+                x1="16"
+                y1="13"
+                x2="16"
+                y2="23"
+                stroke="url(#hourglass-gradient)"
+                strokeWidth="1.5"
+                strokeDasharray="2 2"
+                className="hourglass-stream"
+            />
+            {/* Lower Sand Mound */}
+            <path
+                d="M11 27c1.5-2 3.5-3 5-3s3.5 1 5 3H11z"
+                fill="url(#hourglass-gradient)"
+                opacity="0.9"
+            />
+        </svg>
+    );
+}
+
 // Some countries (like France) have a bad code in the data file, so pick the better one
 function codeOf(p: any): string {
     return p.ISO_A2_EH && p.ISO_A2_EH !== "-99" ? p.ISO_A2_EH : p.ISO_A2;
@@ -38,6 +87,8 @@ function center(geometry: any) {
 
 export default function GlobeView() {
     const globeRef = useRef<any>(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [isFading, setIsFading] = useState(false);
     const [countries, setCountries] = useState<any[]>([]);
     const [pins, setPins] = useState<Pin[]>([]);
     const [selected, setSelected] = useState<Selected | null>(null);
@@ -67,10 +118,23 @@ export default function GlobeView() {
         if (material) {
             material.color.setRGB(1.35, 1.35, 1.35);
         }
+
+        // Smooth transition out of loading overlay
+        setIsFading(true);
+        setTimeout(() => {
+            setIsLoading(false);
+        }, 500);
     };
 
     useEffect(() => {
         configureControls();
+
+        // Safety fallback timer so loader never gets stuck indefinitely
+        const timer = setTimeout(() => {
+            setIsFading(true);
+            setTimeout(() => setIsLoading(false), 500);
+        }, 6000);
+        return () => clearTimeout(timer);
     }, []);
 
     // Load country shapes
@@ -109,6 +173,20 @@ export default function GlobeView() {
 
     return (
         <div className="globe-page">
+            {isLoading && (
+                <div className={`globe-loading-overlay ${isFading ? "globe-loading-overlay--fade" : ""}`}>
+                    <div className="globe-loading-card">
+                        <div className="globe-hourglass-wrapper">
+                            <HourglassIcon className="globe-hourglass-icon" />
+                        </div>
+                        <div className="globe-loading-text">
+                            <span className="globe-loading-title">Rendering 3D Globe</span>
+                            <span className="globe-loading-subtitle">Synchronizing timezones and planetary data...</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             <Globe
                 ref={globeRef}
                 width={size.w}
