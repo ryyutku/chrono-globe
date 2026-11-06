@@ -1,0 +1,22 @@
+.live-clock {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(212, 175, 55, 0.3);
+}
+
+.live-clock__zone {
+    font-size: 12px;
+    opacity: 0.7;
+}
+
+.live-clock__time {
+    font-size: 30px;
+    font-family: ui-monospace, monospace;
+    color: #8a6d0b;
+    font-weight: 600;
+}
+
+.live-clock__meta {
+    font-size: 12px;
+    opacity: 0.7;
+}
