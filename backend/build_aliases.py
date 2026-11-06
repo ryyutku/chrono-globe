@@ -1,3 +1,5 @@
+# backend/build_aliases.py
+
 """
 build_aliases.py — Layer 5 build step
 ======================================

@@ -1,18 +1,38 @@
-import ConverterWidget from '@/components/converter/ConverterWidget';
+// src/app/page.tsx
+
+import Link from "next/link";
+import { Hero } from "@/components/sections/Hero";
+import { FeaturePreview } from "@/components/sections/FeaturePreview";
 
 export default function HomePage() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-6">
-      {/* Title */}
-      <h1 className="text-4xl font-light tracking-tight text-[#3b3221] mb-2">
-        Chrono Globe
-      </h1>
-      <p className="text-sm text-[#8c7b64] mb-12">
-        Precision timezone converter
-      </p>
+    <main className="min-h-screen bg-zinc-950 text-zinc-100">
+      <Hero
+        title="Time across borders, simplified."
+        subtitle="Search cities, countries, or abbreviations. Built on canonical IANA timezones to handle daylight saving without headaches."
+        actions={
+          <>
+            <Link
+              href="/clocks"
+              className="rounded-lg bg-white px-5 py-2.5 text-sm font-semibold text-zinc-950 transition hover:bg-zinc-200"
+            >
+              Open World Clocks
+            </Link>
+            <Link
+              href="/planner"
+              className="rounded-lg border border-zinc-700 px-5 py-2.5 text-sm font-semibold text-zinc-300 transition hover:bg-zinc-900 hover:text-white"
+            >
+              Plan a Meeting
+            </Link>
+          </>
+        }
+        media={{
+          type: "video",
+          src : "/videos/earth.mp4",
+        }}
+      />
 
-      {/* Converter Card Centered */}
-      <ConverterWidget />
+      <FeaturePreview />
     </main>
   );
 }
