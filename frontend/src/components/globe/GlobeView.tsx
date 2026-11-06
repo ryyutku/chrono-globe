@@ -107,19 +107,19 @@ export default function GlobeView() {
                 ref={globeRef}
                 width={size.w}
                 height={size.h}
-                globeImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg"
-                backgroundImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png"
-                atmosphereColor="#38bdf8"
-                atmosphereAltitude={0.15}
+                globeImageUrl="/textures/earth-day.jpg"
+                backgroundImageUrl="/textures/night-sky.png"
+                atmosphereColor="#60a5fa"
+                atmosphereAltitude={0.18}
                 onGlobeReady={handleGlobeReady}
                 backgroundColor="rgba(0,0,0,0)"
                 polygonsData={countries}
                 polygonCapColor={(d: any) =>
-                    d === hovered ? "rgba(56, 189, 248, 0.3)" : "rgba(0, 0, 0, 0)"
+                    d === hovered ? "rgba(56, 189, 248, 0.35)" : "rgba(0, 0, 0, 0)"
                 }
                 polygonSideColor={() => "rgba(0,0,0,0)"}
-                polygonStrokeColor={() => "rgba(255, 255, 255, 0.35)"}
-                polygonAltitude={0.01}
+                polygonStrokeColor={() => "rgba(255, 255, 255, 0.4)"}
+                polygonAltitude={0.005}
                 polygonsTransitionDuration={150}
                 polygonLabel={(p: any) =>
                     `<div style="background: rgba(9,9,11,0.9); color: #f4f4f5; padding: 4px 10px; border-radius: 6px; font-size: 12px; border: 1px solid #27272a; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">${p.properties.NAME}</div>`
@@ -138,7 +138,7 @@ export default function GlobeView() {
                 labelSize={1.3}
                 labelDotRadius={0.5}
                 labelColor={() => "#38bdf8"}
-                labelAltitude={0.02}
+                labelAltitude={0.015}
             />
 
             {/* Left panel: time zone selector and pin list */}
