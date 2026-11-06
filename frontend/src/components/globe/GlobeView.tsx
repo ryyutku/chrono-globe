@@ -11,6 +11,29 @@ import "./GlobeView.css";
 // The globe only works in the browser, so it is loaded client-side only
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
+const TEXTURE_OPTIONS = {
+    night: {
+        label: "Night Lights",
+        globe: "//cdn.jsdelivr.net/npm/three-globe/example/img/earth-night.jpg",
+        bump: "//cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png",
+        atmosphere: "#38bdf8",
+    },
+    blue: {
+        label: "Blue Marble",
+        globe: "//cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg",
+        bump: "//cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png",
+        atmosphere: "#60a5fa",
+    },
+    dark: {
+        label: "Dark Minimal",
+        globe: "//cdn.jsdelivr.net/npm/three-globe/example/img/earth-dark.jpg",
+        bump: "//cdn.jsdelivr.net/npm/three-globe/example/img/earth-topology.png",
+        atmosphere: "#818cf8",
+    },
+} as const;
+
+type TextureKey = keyof typeof TEXTURE_OPTIONS;
+
 type Pin = { id: string; lat: number; lng: number; tz: string };
 type Selected = { name: string; tzs: string[] };
 
@@ -37,6 +60,7 @@ function center(geometry: any) {
 
 export default function GlobeView() {
     const globeRef = useRef<any>(null);
+    const [textureKey, setTextureKey] = useState<TextureKey>("night");
     const [countries, setCountries] = useState<any[]>([]);
     const [pins, setPins] = useState<Pin[]>([]);
     const [selected, setSelected] = useState<Selected | null>(null);
@@ -107,8 +131,11 @@ export default function GlobeView() {
                 ref={globeRef}
                 width={size.w}
                 height={size.h}
-                globeImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/earth-blue-marble.jpg"
+                globeImageUrl={TEXTURE_OPTIONS[textureKey].globe}
+                bumpImageUrl={TEXTURE_OPTIONS[textureKey].bump}
                 backgroundImageUrl="//cdn.jsdelivr.net/npm/three-globe/example/img/night-sky.png"
+                atmosphereColor={TEXTURE_OPTIONS[textureKey].atmosphere}
+                atmosphereAltitude={0.16}
                 onGlobeReady={handleGlobeReady}
                 backgroundColor="rgba(0,0,0,0)"
                 polygonsData={countries}
@@ -141,6 +168,20 @@ export default function GlobeView() {
 
             {/* Left panel: time zone selector and pin list */}
             <GlassCard className="globe-panel globe-panel--left">
+                <div className="globe-panel__title">Globe Style</div>
+                <div className="globe-texture-tabs">
+                    {(Object.keys(TEXTURE_OPTIONS) as TextureKey[]).map((key) => (
+                        <button
+                            key={key}
+                            type="button"
+                            className={`globe-texture-tab ${textureKey === key ? "globe-texture-tab--active" : ""}`}
+                            onClick={() => setTextureKey(key)}
+                        >
+                            {TEXTURE_OPTIONS[key].label}
+                        </button>
+                    ))}
+                </div>
+
                 <div className="globe-panel__title">Pin a Timezone</div>
                 <select
                     className="globe-select"
