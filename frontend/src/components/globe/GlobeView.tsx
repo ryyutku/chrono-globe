@@ -15,6 +15,10 @@ const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
 type Pin = { id: string; lat: number; lng: number; tz: string };
 type Selected = { name: string; tzs: string[]; lat: number; lng: number };
+const GLOBE_TEXTURE = "https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg";
+
+// loading -> finish (bar fills) -> card (card dissolves) -> reveal (iris + camera) -> done
+type Phase = "loading" | "finish" | "card" | "reveal" | "done";
 
 function HourglassIcon({ className = "" }: { className?: string }) {
     return (
@@ -88,8 +92,12 @@ function center(geometry: any) {
 
 export default function GlobeView() {
     const globeRef = useRef<any>(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [isFading, setIsFading] = useState(false);
+    const [phase, setPhase] = useState<Phase>("loading");
+    const globeReady = useRef(false);
+    const textureReady = useRef(false);
+    const revealStarted = useRef(false);
+    const [progress, setProgress] = useState(0);
+    const timers = useRef<number[]>([]);
     const [countries, setCountries] = useState<any[]>([]);
     const [pins, setPins] = useState<Pin[]>([]);
     const [selected, setSelected] = useState<Selected | null>(null);
@@ -129,6 +137,30 @@ export default function GlobeView() {
         }
     };
 
+    // Run a function later, and remember the timer so it can be cleaned up
+    const later = (fn: () => void, ms: number) => {
+        timers.current.push(window.setTimeout(fn, ms));
+    };
+
+    // The whole staged reveal, started only once
+    const startReveal = () => {
+        if (revealStarted.current) return;
+        revealStarted.current = true;
+
+        setPhase("finish"); // Stage 1: progress bar fills
+        later(() => setPhase("card"), 400); // Stage 2: card dissolves
+        later(() => {
+            setPhase("reveal"); // Stage 3: iris opens, blur melts, globe fades up
+            globeRef.current?.pointOfView?.({ altitude: 2.2 }, 1800); // Stage 4: camera swoop
+        }, 850);
+        later(() => setPhase("done"), 850 + 1800); // overlay removed from the page
+    };
+
+    // Reveal only when both the globe and the Earth image are ready
+    const tryReveal = () => {
+        if (globeReady.current && textureReady.current) startReveal();
+    };
+
     const handleGlobeReady = () => {
         configureControls();
 
@@ -137,29 +169,45 @@ export default function GlobeView() {
             material.color.setRGB(1.35, 1.35, 1.35);
         }
 
-        // Cinematic Fly-In: Start camera further out in deep orbit and glide into focus
+        // Start the camera far out, hidden behind the veil
         globeRef.current?.pointOfView?.({ altitude: 3.6 });
-        setTimeout(() => {
-            globeRef.current?.pointOfView?.({ altitude: 2.2 }, 1500);
-        }, 50);
 
-        // Smooth two-stage fade: card gracefully dissipates while cosmic blur melts away
-        setIsFading(true);
-        setTimeout(() => {
-            setIsLoading(false);
-        }, 850);
+        globeReady.current = true;
+        tryReveal();
     };
 
     useEffect(() => {
         configureControls();
 
-        // Safety fallback timer so loader never gets stuck indefinitely
-        const timer = setTimeout(() => {
-            setIsFading(true);
-            setTimeout(() => setIsLoading(false), 850);
-        }, 6000);
-        return () => clearTimeout(timer);
+        // Wait for the Earth image so the globe never pops in half-drawn
+        const img = new Image();
+        img.onload = img.onerror = () => {
+            textureReady.current = true;
+            tryReveal();
+        };
+        img.src = GLOBE_TEXTURE;
+
+        // Safety: never get stuck on the loader
+        later(() => startReveal(), 6000);
+
+        return () => {
+            timers.current.forEach((t) => window.clearTimeout(t));
+            timers.current = [];
+            img.onload = img.onerror = null;
+        };
     }, []);
+
+    // Progress bar: eases up to 90% while loading, then fills to 100% when the reveal starts
+    useEffect(() => {
+        if (phase !== "loading") {
+            setProgress(100);
+            return;
+        }
+        const id = window.setInterval(() => {
+            setProgress((p) => p + (90 - p) * 0.06);
+        }, 100);
+        return () => window.clearInterval(id);
+    }, [phase]);
 
     // Pause the spin while a country popup is open
     useEffect(() => {
@@ -225,9 +273,9 @@ export default function GlobeView() {
     }
 
     return (
-        <div className="globe-page">
-            {isLoading && (
-                <div className={`globe-loading-overlay ${isFading ? "globe-loading-overlay--fade" : ""}`}>
+        <div className={`globe-page ${phase === "done" ? "" : "globe-page--intro"}`}>
+            {phase !== "done" && (
+                <div className={`globe-loading-overlay globe-loading-overlay--${phase}`}>
                     <div className="globe-loading-card">
                         {/* TimeSpot Status Badge */}
                         <div className="globe-loading-badge">
@@ -250,72 +298,79 @@ export default function GlobeView() {
 
                         {/* Minimalist Orange Progress Bar */}
                         <div className="globe-loading-bar-track">
-                            <div className="globe-loading-bar-thumb" />
+                            <div
+                                className="globe-loading-bar-thumb"
+                                style={{ transform: `scaleX(${progress / 100})` }}
+                            />
                         </div>
                     </div>
                 </div>
             )}
 
-            <Globe
-                ref={globeRef}
-                width={size.w}
-                height={size.h}
-                globeImageUrl="https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg"
-                backgroundImageUrl="/textures/night-sky.png"
-                atmosphereColor="#60a5fa"
-                atmosphereAltitude={0.18}
-                onGlobeReady={handleGlobeReady}
-                backgroundColor="rgba(0,0,0,0)"
-                polygonsData={countries}
-                polygonCapColor={(d: any) =>
-                    d === hovered ? "rgba(56, 189, 248, 0.35)" : "rgba(0, 0, 0, 0)"
-                }
-                polygonSideColor={() => "rgba(0,0,0,0)"}
-                polygonStrokeColor={() => "rgba(255, 255, 255, 0.12)"}
-                polygonAltitude={0.005}
-                polygonsTransitionDuration={150}
-                polygonLabel={(p: any) =>
-                    `<div style="background: rgba(9,9,11,0.9); color: #f4f4f5; padding: 4px 10px; border-radius: 6px; font-size: 12px; border: 1px solid #27272a; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">${p.properties.NAME}</div>`
-                }
-                onPolygonHover={(p: any) => setHovered(p)}
-                onPolygonClick={(poly: any, _event: MouseEvent, coords: any) => {
-                    const country = getCountry(codeOf(poly.properties));
-                    let tzs: string[] = country?.timezones ?? [];
-                    try {
-                        // Use the time zone of the exact spot that was clicked
-                        tzs = [tzlookup(coords.lat, coords.lng)];
-                    } catch {
-                        // If the lookup fails, fall back to the country's zone list
+            <div
+                className={`globe-canvas ${phase === "reveal" || phase === "done" ? "globe-canvas--shown" : ""
+                    } ${phase === "done" ? "globe-canvas--settled" : ""}`}
+            >
+                <Globe
+                    ref={globeRef}
+                    width={size.w}
+                    height={size.h}
+                    globeImageUrl={GLOBE_TEXTURE}
+                    backgroundImageUrl="/textures/night-sky.png"
+                    atmosphereColor="#60a5fa"
+                    atmosphereAltitude={0.18}
+                    onGlobeReady={handleGlobeReady}
+                    backgroundColor="rgba(0,0,0,0)"
+                    polygonsData={countries}
+                    polygonCapColor={(d: any) =>
+                        d === hovered ? "rgba(56, 189, 248, 0.35)" : "rgba(0, 0, 0, 0)"
                     }
-                    setSelected({ name: poly.properties.NAME, tzs, lat: coords.lat, lng: coords.lng });
-                }}
-                labelsData={countryLabels}
-                labelLat="lat"
-                labelLng="lng"
-                labelText="name"
-                labelSize={0.6}
-                labelIncludeDot={false}
-                labelColor={() => "rgba(255, 255, 255, 1)"}
-                labelAltitude={0.012}
-                labelResolution={2}
-                htmlElementsData={pins}
-                htmlLat="lat"
-                htmlLng="lng"
-                htmlAltitude={0.01}
-                htmlElement={(d: any) => {
-                    const el = document.createElement("div");
-                    el.style.cssText = "position:relative;width:0;height:0;pointer-events:none;";
-                    el.innerHTML = `
+                    polygonSideColor={() => "rgba(0,0,0,0)"}
+                    polygonStrokeColor={() => "rgba(255, 255, 255, 0.12)"}
+                    polygonAltitude={0.005}
+                    polygonsTransitionDuration={150}
+                    polygonLabel={(p: any) =>
+                        `<div style="background: rgba(9,9,11,0.9); color: #f4f4f5; padding: 4px 10px; border-radius: 6px; font-size: 12px; border: 1px solid #27272a; box-shadow: 0 4px 12px rgba(0,0,0,0.5);">${p.properties.NAME}</div>`
+                    }
+                    onPolygonHover={(p: any) => setHovered(p)}
+                    onPolygonClick={(poly: any, _event: MouseEvent, coords: any) => {
+                        const country = getCountry(codeOf(poly.properties));
+                        let tzs: string[] = country?.timezones ?? [];
+                        try {
+                            // Use the time zone of the exact spot that was clicked
+                            tzs = [tzlookup(coords.lat, coords.lng)];
+                        } catch {
+                            // If the lookup fails, fall back to the country's zone list
+                        }
+                        setSelected({ name: poly.properties.NAME, tzs, lat: coords.lat, lng: coords.lng });
+                    }}
+                    labelsData={countryLabels}
+                    labelLat="lat"
+                    labelLng="lng"
+                    labelText="name"
+                    labelSize={0.6}
+                    labelIncludeDot={false}
+                    labelColor={() => "rgba(255, 255, 255, 1)"}
+                    labelAltitude={0.012}
+                    labelResolution={2}
+                    htmlElementsData={pins}
+                    htmlLat="lat"
+                    htmlLng="lng"
+                    htmlAltitude={0.01}
+                    htmlElement={(d: any) => {
+                        const el = document.createElement("div");
+                        el.style.cssText = "position:relative;width:0;height:0;pointer-events:none;";
+                        el.innerHTML = `
         <svg width="24" height="32" viewBox="0 0 24 32" style="position:absolute;left:-12px;top:-32px;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.5));">
             <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="#f43f5e"/>
             <circle cx="12" cy="12" r="4.5" fill="#ffffff"/>
         </svg>
         <div style="position:absolute;left:16px;top:-26px;white-space:nowrap;font-size:12px;font-weight:600;color:#ffffff;text-shadow:0 1px 4px rgba(0,0,0,0.9);">${d.tz}</div>
     `;
-                    return el;
-                }}
-            />
-
+                        return el;
+                    }}
+                />
+            </div>
             {/* Left panel: time zone selector and pin list */}
             <GlassCard className="globe-panel globe-panel--left">
                 <div className="globe-panel__title">Pin a Timezone</div>

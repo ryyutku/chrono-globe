@@ -21,36 +21,47 @@
    Loading Overlay (Cinematic Space Dissolve & TimeSpot Theme)
    ========================================================================== */
 
+@property --iris {
+    syntax: "<percentage>";
+    inherits: false;
+    initial-value: -15%;
+}
+
 .globe-loading-overlay {
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    /* Vignette blend: soft warm bone-canvas center dissolving into deep cosmic backdrop */
-    background: radial-gradient(
-        circle at 50% 50%,
-        rgba(236, 235, 230, 0.90) 0%,
-        rgba(220, 218, 212, 0.82) 40%,
-        rgba(25, 32, 50, 0.70) 70%,
-        rgba(5, 7, 15, 0.92) 100%
-    );
+    background: radial-gradient(circle at 50% 50%,
+            rgba(16, 24, 46, 0.94) 0%,
+            rgba(6, 10, 22, 0.88) 55%,
+            rgba(2, 4, 9, 0.80) 100%);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     z-index: 50;
     pointer-events: auto;
+
+    /* Iris: a soft-edged hole that opens from the centre outward */
+    --iris: -15%;
+    -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent var(--iris), #000 calc(var(--iris) + 14%));
+    mask-image: radial-gradient(circle at 50% 50%, transparent var(--iris), #000 calc(var(--iris) + 14%));
+
+    will-change: opacity, backdrop-filter, mask-image;
     transition:
-        opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-        backdrop-filter 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-        -webkit-backdrop-filter 0.8s cubic-bezier(0.16, 1, 0.3, 1),
-        visibility 0.8s ease;
+        --iris 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+        backdrop-filter 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+        -webkit-backdrop-filter 1.5s cubic-bezier(0.16, 1, 0.3, 1),
+        opacity 0.6s ease-in 1s;
 }
 
-.globe-loading-overlay--fade {
-    opacity: 0;
+/* Stage 3: iris opens, blur melts, veil fades (opacity is also the fallback
+   for browsers that can't animate the iris) */
+.globe-loading-overlay--reveal {
+    --iris: 125%;
     backdrop-filter: blur(0px);
     -webkit-backdrop-filter: blur(0px);
-    visibility: hidden;
+    opacity: 0;
     pointer-events: none;
 }
 
@@ -69,15 +80,26 @@
     animation: globeCardFloat 3.2s ease-in-out infinite;
     max-width: 360px;
     width: 90%;
+    will-change: transform, opacity;
     transition:
-        opacity 0.35s ease,
-        transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+        opacity 0.45s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.globe-loading-overlay--fade .globe-loading-card {
+/* Stage 2: the card compresses slightly and dissolves */
+.globe-loading-overlay--card .globe-loading-card,
+.globe-loading-overlay--reveal .globe-loading-card {
     opacity: 0;
-    transform: scale(0.92) translateY(-12px);
+    transform: scale(0.94);
+}
+
+/* Stage 1: the progress bar finishes cleanly */
+.globe-loading-overlay--finish .globe-loading-bar-thumb,
+.globe-loading-overlay--card .globe-loading-bar-thumb,
+.globe-loading-overlay--reveal .globe-loading-bar-thumb {
     animation: none;
+    left: 0;
+    width: 100%;
 }
 
 .globe-loading-badge {
@@ -104,10 +126,13 @@
 }
 
 @keyframes badgePulse {
-    0%, 100% {
+
+    0%,
+    100% {
         transform: scale(1);
         opacity: 1;
     }
+
     50% {
         transform: scale(1.35);
         opacity: 0.7;
@@ -142,15 +167,19 @@
     0% {
         transform: rotate(0deg);
     }
+
     40% {
         transform: rotate(0deg);
     }
+
     55% {
         transform: rotate(180deg);
     }
+
     90% {
         transform: rotate(180deg);
     }
+
     100% {
         transform: rotate(360deg);
     }
@@ -160,17 +189,21 @@
     0% {
         stroke-dashoffset: 0;
     }
+
     100% {
         stroke-dashoffset: 4;
     }
 }
 
 @keyframes globeCardFloat {
-    0%, 100% {
-        transform: translateY(0);
+
+    0%,
+    100% {
+        translate: 0 0;
     }
+
     50% {
-        transform: translateY(-4px);
+        translate: 0 -4px;
     }
 }
 
@@ -208,21 +241,24 @@
 
 .globe-loading-bar-thumb {
     position: absolute;
-    top: 0;
-    bottom: 0;
-    width: 45%;
+    inset: 0;
     border-radius: 9999px;
     background: #F04B0B;
-    animation: loadingBarSlide 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+    transform-origin: left center;
+    transform: scaleX(0);
+    will-change: transform;
+    transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 @keyframes loadingBarSlide {
     0% {
         left: -45%;
     }
+
     50% {
         left: 40%;
     }
+
     100% {
         left: 100%;
     }
@@ -240,6 +276,21 @@
     overflow-y: auto;
     font-size: 14px;
     z-index: 20;
+}
+
+/* Panels fade and slide in once the globe is fully shown */
+.globe-page .globe-panel {
+    transition:
+        opacity 0.7s ease,
+        transform 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+        visibility 0.7s;
+}
+
+.globe-page--intro .globe-panel {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(10px);
 }
 
 .globe-page .globe-panel--left {
@@ -395,4 +446,45 @@
     display: flex;
     flex-direction: column;
     gap: 10px;
+}
+
+/* ==========================================================================
+   Globe canvas: starts dark and slightly zoomed in, then settles
+   ========================================================================== */
+
+.globe-canvas {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transform: scale(1.08);
+    filter: brightness(0.55) saturate(0.7);
+    will-change: transform, opacity, filter;
+    transition:
+        opacity 1.6s cubic-bezier(0.16, 1, 0.3, 1),
+        transform 2s cubic-bezier(0.16, 1, 0.3, 1),
+        filter 1.8s ease-out;
+}
+
+.globe-canvas--shown {
+    opacity: 1;
+    transform: scale(1);
+    filter: brightness(1) saturate(1);
+}
+
+/* Once the intro is over, drop the extra effects so the globe renders normally */
+.globe-canvas--settled {
+    transform: none;
+    filter: none;
+    will-change: auto;
+    transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .globe-loading-overlay,
+    .globe-loading-card,
+    .globe-canvas {
+        transition-duration: 0.01s !important;
+        transition-delay: 0s !important;
+    }
 }
