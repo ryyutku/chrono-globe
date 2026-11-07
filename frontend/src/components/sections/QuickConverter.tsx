@@ -1,7 +1,7 @@
 // src/components/sections/QuickConverter.tsx
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { resolveZone, convertTime } from "@/lib/api/timezone";
 import { ConvertResponse } from "@/types/timezone";
 import { useSavedClocks } from "@/lib/hooks/useSavedClocks";
@@ -12,21 +12,74 @@ import {
   getZoomScheduleUrl,
 } from "@/lib/utils/calendar";
 
-const STORAGE_KEY = "timespot_conversion_v2";
+const STORAGE_KEY = "timespot_home_converter_state";
+
+interface ConverterPersistedState {
+  fromQuery: string;
+  toQuery: string;
+  inputTime: string;
+  inputDate: string;
+  resolvedFrom: string | null;
+  resolvedTo: string | null;
+  result: ConvertResponse | null;
+}
+
+function getInitialConverterState(): ConverterPersistedState {
+  if (typeof window === "undefined") {
+    return {
+      fromQuery: "New York",
+      toQuery: "London",
+      inputTime: "03:15",
+      inputDate: new Date().toISOString().slice(0, 10),
+      resolvedFrom: "America/New_York",
+      resolvedTo: "Europe/London",
+      result: null,
+    };
+  }
+
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        fromQuery: parsed.fromQuery || "New York",
+        toQuery: parsed.toQuery || "London",
+        inputTime: parsed.inputTime || "03:15",
+        inputDate: parsed.inputDate || new Date().toISOString().slice(0, 10),
+        resolvedFrom: parsed.resolvedFrom || "America/New_York",
+        resolvedTo: parsed.resolvedTo || "Europe/London",
+        result: parsed.result || null,
+      };
+    }
+  } catch {}
+
+  return {
+    fromQuery: "New York",
+    toQuery: "London",
+    inputTime: "03:15",
+    inputDate: new Date().toISOString().slice(0, 10),
+    resolvedFrom: "America/New_York",
+    resolvedTo: "Europe/London",
+    result: null,
+  };
+}
 
 export function QuickConverter() {
-  const [fromQuery, setFromQuery] = useState("New York");
-  const [toQuery, setToQuery] = useState("London");
-  const [inputTime, setInputTime] = useState("03:15");
-  const [inputDate, setInputDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const initial = getInitialConverterState();
 
-  const [resolvedFrom, setResolvedFrom] = useState<string | null>("America/New_York");
-  const [resolvedTo, setResolvedTo] = useState<string | null>("Europe/London");
+  const [fromQuery, setFromQuery] = useState(initial.fromQuery);
+  const [toQuery, setToQuery] = useState(initial.toQuery);
+  const [inputTime, setInputTime] = useState(initial.inputTime);
+  const [inputDate, setInputDate] = useState(initial.inputDate);
 
-  const [result, setResult] = useState<ConvertResponse | null>(null);
+  const [resolvedFrom, setResolvedFrom] = useState<string | null>(initial.resolvedFrom);
+  const [resolvedTo, setResolvedTo] = useState<string | null>(initial.resolvedTo);
+  const [result, setResult] = useState<ConvertResponse | null>(initial.result);
+
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: "success" | "warning" } | null>(null);
 
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const { addClockPair } = useSavedClocks();
 
   const handleSetNow = () => {
@@ -37,6 +90,7 @@ export function QuickConverter() {
     setInputDate(now.toISOString().slice(0, 10));
   };
 
+  // Run conversion and automatically persist changes
   useEffect(() => {
     if (!fromQuery.trim() || !toQuery.trim()) return;
 
@@ -68,6 +122,20 @@ export function QuickConverter() {
         });
 
         setResult(conv);
+
+        // Permanently persist to localStorage
+        localStorage.setItem(
+          STORAGE_KEY,
+          JSON.stringify({
+            fromQuery,
+            toQuery,
+            inputTime,
+            inputDate,
+            resolvedFrom: canonicalFrom,
+            resolvedTo: canonicalTo,
+            result: conv,
+          })
+        );
       } catch (err) {
         console.error("Conversion failed:", err);
       } finally {
@@ -80,21 +148,14 @@ export function QuickConverter() {
 
   const handleSaveClock = () => {
     if (!resolvedFrom || !resolvedTo) return;
-
     const res = addClockPair(resolvedFrom, resolvedTo);
     const fromName = resolvedFrom.split("/").pop()?.replace(/_/g, " ");
     const toName = resolvedTo.split("/").pop()?.replace(/_/g, " ");
 
     if (res.success) {
-      setToast({
-        message: `Saved ${fromName} → ${toName} to World Clocks!`,
-        type: "success",
-      });
+      setToast({ message: `Saved ${fromName} → ${toName} to World Clocks!`, type: "success" });
     } else {
-      setToast({
-        message: `${fromName} → ${toName} is already saved.`,
-        type: "warning",
-      });
+      setToast({ message: `${fromName} → ${toName} is already saved.`, type: "warning" });
     }
   };
 
@@ -130,8 +191,8 @@ export function QuickConverter() {
           toZone: resolvedTo,
           sourceLocal: result.source_local,
           targetLocal: result.target_local,
-          sourceAbbrev: result.source_abbrev,
-          targetAbbrev: result.target_abbrev,
+          sourceAbbrev: "UTC",
+          targetAbbrev: "UTC",
         }
       : null;
 
@@ -148,10 +209,9 @@ export function QuickConverter() {
         />
       )}
 
-      {/* Main Conversion Cards Container */}
+      {/* Side-by-Side Conversion Cards */}
       <div className="relative grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-4 mt-8">
-        
-        {/* FROM CARD (White Panel) */}
+        {/* FROM CARD */}
         <div className="rounded-[24px] bg-[#FFFFFF] border border-[#DCDAD5] p-7 sm:p-8 shadow-sm flex flex-col justify-between min-h-[260px]">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -182,7 +242,7 @@ export function QuickConverter() {
           </div>
         </div>
 
-        {/* Circular Swap Button (↔) */}
+        {/* Swap Button */}
         <div className="flex justify-center -my-3 md:my-0 z-10">
           <button
             type="button"
@@ -194,7 +254,7 @@ export function QuickConverter() {
           </button>
         </div>
 
-        {/* TO CARD (Solid Black Panel) */}
+        {/* TO CARD */}
         <div className="rounded-[24px] bg-[#0A0A0A] text-white p-7 sm:p-8 shadow-md flex flex-col justify-between min-h-[260px]">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -225,23 +285,33 @@ export function QuickConverter() {
             </div>
           </div>
         </div>
-
       </div>
 
       {/* Bottom Controls Bar */}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-        {/* Left: Date / Time Picker Pills */}
+        {/* Date and Time Selector */}
         <div className="flex items-center gap-2">
-          <label className="flex items-center gap-2 rounded-full bg-[#FFFFFF] border border-[#DCDAD5] px-4 py-2 text-xs font-bold text-[#050505] cursor-pointer shadow-sm hover:bg-[#F4F3EE] transition">
-            <span>📅</span>
-            <span>Select date and time</span>
-            <input
-              type="time"
-              value={inputTime}
-              onChange={(e) => setInputTime(e.target.value)}
-              className="sr-only"
-            />
-          </label>
+          <button
+            type="button"
+            onClick={() => dateInputRef.current?.showPicker()}
+            className="flex items-center gap-2 rounded-full bg-[#FFFFFF] border border-[#DCDAD5] px-4 py-2 text-xs font-bold text-[#050505] shadow-sm hover:bg-[#F4F3EE] transition"
+          >
+            <svg className="h-4 w-4 text-[#050505]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+              <line x1="16" y1="2" x2="16" y2="6" />
+              <line x1="8" y1="2" x2="8" y2="6" />
+              <line x1="3" y1="10" x2="21" y2="10" />
+            </svg>
+            <span>{fromDisplay.date} · {inputTime}</span>
+          </button>
+
+          <input
+            ref={dateInputRef}
+            type="date"
+            value={inputDate}
+            onChange={(e) => setInputDate(e.target.value)}
+            className="sr-only"
+          />
 
           <button
             type="button"
@@ -253,9 +323,8 @@ export function QuickConverter() {
           </button>
         </div>
 
-        {/* Right: Meeting Launchers + Save Conversion */}
+        {/* Meeting Buttons & Save */}
         <div className="flex flex-wrap items-center gap-2">
-          {/* Google Meet */}
           {googleUrl && (
             <a
               href={googleUrl}
@@ -273,7 +342,6 @@ export function QuickConverter() {
             </a>
           )}
 
-          {/* Microsoft Teams */}
           {teamsUrl && (
             <a
               href={teamsUrl}
@@ -289,7 +357,6 @@ export function QuickConverter() {
             </a>
           )}
 
-          {/* Zoom */}
           <a
             href={getZoomScheduleUrl()}
             target="_blank"
@@ -302,7 +369,6 @@ export function QuickConverter() {
             <span>Zoom</span>
           </a>
 
-          {/* Save Conversion */}
           <button
             type="button"
             onClick={handleSaveClock}

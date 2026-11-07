@@ -1,5 +1,4 @@
 // src/components/ui/Toast.tsx
-
 "use client";
 
 import { useEffect } from "react";
@@ -17,18 +16,20 @@ export function Toast({ message, type = "success", onClose, duration = 3000 }: T
     return () => clearTimeout(timer);
   }, [onClose, duration]);
 
-  const bgColor = type === "success" 
-    ? "border-emerald-600/50 bg-emerald-950/90 text-emerald-200" 
-    : "border-amber-600/50 bg-amber-950/90 text-amber-200";
-
   return (
-    <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-300">
-      <div className={`flex items-center gap-3 rounded-xl border px-4 py-3 shadow-2xl backdrop-blur-md text-sm font-medium ${bgColor}`}>
-        <span>{type === "success" ? "✓" : "⚠"}</span>
+    <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-200">
+      <div className="flex items-center gap-3 rounded-full bg-[#FFFFFF] border border-[#DCDAD5] px-4 py-2.5 shadow-xl text-xs font-bold text-[#050505]">
+        <span
+          className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] text-white ${
+            type === "success" ? "bg-[#F04B0B]" : "bg-[#050505]"
+          }`}
+        >
+          {type === "success" ? "✓" : "!"}
+        </span>
         <span>{message}</span>
-        <button 
-          onClick={onClose} 
-          className="ml-2 text-xs opacity-60 hover:opacity-100 transition-opacity"
+        <button
+          onClick={onClose}
+          className="ml-2 text-[#777777] hover:text-[#050505] transition p-0.5"
         >
           ✕
         </button>

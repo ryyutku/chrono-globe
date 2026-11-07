@@ -1,6 +1,7 @@
 // src/app/clocks/page.tsx
 "use client";
 
+import { useMemo } from "react";
 import { Container } from "@/components/layout/Container";
 import { ClockCard } from "@/components/ui/ClockCard";
 import { useSavedClocks } from "@/lib/hooks/useSavedClocks";
@@ -8,6 +9,27 @@ import Link from "next/link";
 
 export default function WorldClocksPage() {
   const { pairs, removeClockPair, isLoaded } = useSavedClocks();
+
+  // Generates a lower ratio of black cards (~30% Black, ~70% White)
+  const blackCardMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+
+    pairs.forEach((pair, index) => {
+      let hash = 0;
+      for (let i = 0; i < pair.id.length; i++) {
+        hash = (hash << 5) - hash + pair.id.charCodeAt(i);
+      }
+      // % 3 === 0 assigns roughly 1 black card for every 3 cards
+      map[pair.id] = Math.abs(hash + index) % 3 === 0;
+    });
+
+    // Ensure at least one black card exists for visual contrast if there are saved clocks
+    if (pairs.length > 0 && !Object.values(map).some(Boolean)) {
+      map[pairs[0].id] = true;
+    }
+
+    return map;
+  }, [pairs]);
 
   if (!isLoaded) {
     return (
@@ -58,11 +80,11 @@ export default function WorldClocksPage() {
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {pairs.map((pair, index) => (
+              {pairs.map((pair) => (
                 <ClockCard
                   key={pair.id}
                   pair={pair}
-                  isPrimary={index === 0}
+                  isPrimary={Boolean(blackCardMap[pair.id])} // Mostly white, occasional black
                   onRemove={removeClockPair}
                 />
               ))}
