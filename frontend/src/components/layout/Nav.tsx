@@ -1,46 +1,59 @@
 // src/components/layout/Nav.tsx
-
 "use client";
 
-import { useEffect, useState } from "react";
-import { Container } from "@/components/layout/Container";
-import { PrismaticGlassNav } from "@/components/ui/PrismaticGlassNav";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { navConfig } from "@/lib/config/nav";
 
 export function Nav() {
-  const [scrolled, setScrolled] = useState(false);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 15);
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    handleScroll();
-
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  const pathname = usePathname();
 
   return (
-    <header
-      className={`sticky top-0 z-50 w-full transition-all duration-300 py-3 sm:py-4 ${
-        scrolled
-          ? "bg-[#08090C]/65 backdrop-blur-2xl border-b border-white/[0.08] shadow-[0_16px_36px_-12px_rgba(0,0,0,0.85)]"
-          : "bg-transparent border-b border-transparent"
-      }`}
-    >
-      <Container className="flex items-center justify-between">
-        {/* Preserved Signature Prismatic Navigation Unit */}
-        <PrismaticGlassNav label="Home" showLinks={true} />
-
-        {/* UTC Status Indicator - Cyan accent instead of green */}
-        <div className="liquid-glass-l3 hidden sm:flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs font-mono font-medium text-[#A0A2AC]">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#65DDF2] opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-[#65DDF2]" />
+    <header className="w-full px-6 sm:px-10 pt-6 pb-4">
+      <div className="flex items-center justify-between">
+        {/* Brand with Circular Radial Clock Logo */}
+        <Link href="/" className="flex items-center gap-2.5 group select-none">
+          <svg className="h-6 w-6 text-[#050505]" viewBox="0 0 24 24" fill="none">
+            <circle cx="12" cy="12" r="10.5" stroke="currentColor" strokeWidth="2.5" />
+            <path d="M12 6.5v5.5l3.5 2" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" />
+          </svg>
+          <span className="text-xl font-black tracking-tight text-[#050505]">
+            {navConfig.brand}
           </span>
-          <span className="text-[#F4F5F8]">UTC Ready</span>
+        </Link>
+
+        {/* Center Nav Links with Orange Outlined Active Pill */}
+        <nav aria-label="Main Navigation" className="flex items-center gap-1 sm:gap-2">
+          {navConfig.items.map((item) => {
+            const isActive =
+              item.href === "/"
+                ? pathname === "/"
+                : pathname.startsWith(item.href);
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={`px-3.5 py-1 text-xs sm:text-sm font-semibold tracking-tight transition-all duration-150 rounded-full select-none ${
+                  isActive
+                    ? "border-2 border-[#F04B0B] text-[#050505] font-bold"
+                    : "text-[#555555] hover:text-[#050505] border-2 border-transparent"
+                }`}
+              >
+                {item.label}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Far Right: ● UTC Ready ● */}
+        <div className="hidden sm:flex items-center gap-1.5 text-xs font-semibold text-[#050505] select-none">
+          <span className="h-2 w-2 rounded-full bg-[#F04B0B]" />
+          <span>UTC Ready</span>
+          <span className="h-2 w-2 rounded-full bg-[#F04B0B]" />
         </div>
-      </Container>
+      </div>
     </header>
   );
 }

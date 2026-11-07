@@ -14,13 +14,13 @@ export default function HomePage() {
           <>
             <Link
               href="/clocks"
-              className="liquid-glass-l3 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white/15 hover:border-white/30 shadow-lg"
+              className="rounded-full bg-[#F04B0B] px-5 py-2.5 text-sm font-bold text-[#FFFFFF] shadow-sm hover:bg-[#d44008] transition"
             >
               Open World Clocks
             </Link>
             <Link
               href="/planner"
-              className="liquid-glass-l2 rounded-full px-5 py-2.5 text-sm font-semibold text-[#A0A2AC] transition hover:text-white hover:bg-white/10"
+              className="rounded-full border border-[#D0D0D0] bg-[#FFFFFF] px-5 py-2.5 text-sm font-bold text-[#050505] hover:bg-[#E9E9E9] transition"
             >
               Plan a Meeting
             </Link>

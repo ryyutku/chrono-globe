@@ -4,7 +4,6 @@
 import { useState, useEffect } from "react";
 import { resolveZone, convertTime } from "@/lib/api/timezone";
 import { ConvertResponse } from "@/types/timezone";
-import { FlipCard } from "@/components/ui/FlipDigit";
 import { useSavedClocks } from "@/lib/hooks/useSavedClocks";
 import { Toast } from "@/components/ui/Toast";
 import {
@@ -13,55 +12,29 @@ import {
   getZoomScheduleUrl,
 } from "@/lib/utils/calendar";
 
-const STORAGE_KEY = "chrono_last_conversion";
-
-function getStored(key: "from" | "to" | "time", fallback: string): string {
-  if (typeof window === "undefined") return fallback;
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return fallback;
-    const data = JSON.parse(raw);
-    return data[key] || fallback;
-  } catch {
-    return fallback;
-  }
-}
-
-function formatOffset(abbrev?: string, offset?: string): string {
-  if (!offset) return "—";
-  if (
-    !abbrev ||
-    abbrev === offset ||
-    abbrev.replace(":", "") === offset.replace(":", "") ||
-    abbrev.startsWith("+") ||
-    abbrev.startsWith("-")
-  ) {
-    return `UTC${offset}`;
-  }
-  return `${abbrev} (${offset})`;
-}
+const STORAGE_KEY = "timespot_conversion_v2";
 
 export function QuickConverter() {
-  const [fromQuery, setFromQuery] = useState(() => getStored("from", "sri lanka"));
-  const [toQuery, setToQuery] = useState(() => getStored("to", "england"));
-  const [inputTime, setInputTime] = useState(() => getStored("time", "14:30"));
-  const [zoomLink, setZoomLink] = useState("");
+  const [fromQuery, setFromQuery] = useState("New York");
+  const [toQuery, setToQuery] = useState("London");
+  const [inputTime, setInputTime] = useState("03:15");
+  const [inputDate, setInputDate] = useState(() => new Date().toISOString().slice(0, 10));
 
-  const [resolvedFrom, setResolvedFrom] = useState<string | null>(null);
-  const [resolvedTo, setResolvedTo] = useState<string | null>(null);
+  const [resolvedFrom, setResolvedFrom] = useState<string | null>("America/New_York");
+  const [resolvedTo, setResolvedTo] = useState<string | null>("Europe/London");
 
   const [result, setResult] = useState<ConvertResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-
-  const { addClockPair } = useSavedClocks();
   const [toast, setToast] = useState<{ message: string; type: "success" | "warning" } | null>(null);
 
-  const handleSetCurrentTime = () => {
+  const { addClockPair } = useSavedClocks();
+
+  const handleSetNow = () => {
     const now = new Date();
-    const hours = String(now.getHours()).padStart(2, "0");
-    const minutes = String(now.getMinutes()).padStart(2, "0");
-    setInputTime(`${hours}:${minutes}`);
+    const hh = String(now.getHours()).padStart(2, "0");
+    const mm = String(now.getMinutes()).padStart(2, "0");
+    setInputTime(`${hh}:${mm}`);
+    setInputDate(now.toISOString().slice(0, 10));
   };
 
   useEffect(() => {
@@ -69,7 +42,6 @@ export function QuickConverter() {
 
     const timer = setTimeout(async () => {
       setLoading(true);
-      setErrorMessage(null);
 
       try {
         const [fromRes, toRes] = await Promise.all([
@@ -80,13 +52,8 @@ export function QuickConverter() {
         const canonicalFrom = fromRes.zone || fromRes.candidates?.[0]?.zone;
         const canonicalTo = toRes.zone || toRes.candidates?.[0]?.zone;
 
-        if (!canonicalFrom) {
-          setErrorMessage(`Unknown location: "${fromQuery}"`);
-          return;
-        }
-
-        if (!canonicalTo) {
-          setErrorMessage(`Unknown location: "${toQuery}"`);
+        if (!canonicalFrom || !canonicalTo) {
+          setLoading(false);
           return;
         }
 
@@ -94,30 +61,22 @@ export function QuickConverter() {
         setResolvedTo(canonicalTo);
 
         const safeTime = inputTime.trim().length >= 4 ? inputTime.trim() : "12:00";
-        const today = new Date().toISOString().slice(0, 10);
-
         const conv = await convertTime({
-          when: `${today} ${safeTime}`,
+          when: `${inputDate} ${safeTime}`,
           from_zone: canonicalFrom,
           to_zone: canonicalTo,
         });
 
         setResult(conv);
-
-        localStorage.setItem(
-          STORAGE_KEY,
-          JSON.stringify({ from: fromQuery, to: toQuery, time: safeTime })
-        );
-      } catch (err: unknown) {
-        console.error("Conversion error:", err);
-        if (err instanceof Error) setErrorMessage(err.message);
+      } catch (err) {
+        console.error("Conversion failed:", err);
       } finally {
         setLoading(false);
       }
-    }, 450);
+    }, 350);
 
     return () => clearTimeout(timer);
-  }, [fromQuery, toQuery, inputTime]);
+  }, [fromQuery, toQuery, inputTime, inputDate]);
 
   const handleSaveClock = () => {
     if (!resolvedFrom || !resolvedTo) return;
@@ -139,18 +98,30 @@ export function QuickConverter() {
     }
   };
 
-  const swapQueries = () => {
+  const swapLocations = () => {
     setFromQuery(toQuery);
     setToQuery(fromQuery);
   };
 
-  const targetTimeStr = result?.target_local
-    ? result.target_local.split("T")[1]?.slice(0, 5) ?? "00:00"
-    : "00:00";
+  const parseTime = (isoString?: string) => {
+    if (!isoString) return { time: "--:--", period: "AM", date: "Nov 7" };
+    const d = new Date(isoString);
+    let hours = d.getHours();
+    const period = hours >= 12 ? "PM" : "AM";
+    hours = hours % 12 || 12;
+    const minutes = String(d.getMinutes()).padStart(2, "0");
+    const dateFormatted = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return {
+      time: `${String(hours).padStart(2, "0")}:${minutes}`,
+      period,
+      date: dateFormatted,
+    };
+  };
 
-  const [targetHours, targetMins] = targetTimeStr.split(":");
+  const fromDisplay = parseTime(`${inputDate}T${inputTime}:00`);
+  const toDisplay = parseTime(result?.target_local);
 
-  const meetingPayload =
+  const calendarPayload =
     result && resolvedFrom && resolvedTo
       ? {
           title: `Sync: ${resolvedFrom.split("/").pop()?.replace(/_/g, " ")} / ${resolvedTo.split("/").pop()?.replace(/_/g, " ")}`,
@@ -161,15 +132,14 @@ export function QuickConverter() {
           targetLocal: result.target_local,
           sourceAbbrev: result.source_abbrev,
           targetAbbrev: result.target_abbrev,
-          zoomLink: zoomLink.trim(),
         }
       : null;
 
-  const googleUrl = meetingPayload ? buildGoogleMeetUrl(meetingPayload) : null;
-  const teamsUrl = meetingPayload ? buildTeamsMeetingUrl(meetingPayload) : null;
+  const googleUrl = calendarPayload ? buildGoogleMeetUrl(calendarPayload) : null;
+  const teamsUrl = calendarPayload ? buildTeamsMeetingUrl(calendarPayload) : null;
 
   return (
-    <div className="liquid-glass-l1 relative mx-auto max-w-4xl rounded-3xl p-6 sm:p-8">
+    <div className="w-full">
       {toast && (
         <Toast
           message={toast.message}
@@ -178,203 +148,169 @@ export function QuickConverter() {
         />
       )}
 
-      {/* Origin, Swap, Destination Fields */}
-      <div className="grid grid-cols-1 items-start gap-5 sm:grid-cols-7">
+      {/* Main Conversion Cards Container */}
+      <div className="relative grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-4 mt-8">
         
-        {/* Origin Column */}
-        <div className="sm:col-span-3">
-          <label className="block text-xs font-semibold tracking-wider text-[#A0A2AC] uppercase mb-2">
-            Origin
-          </label>
-          <input
-            type="text"
-            value={fromQuery}
-            onChange={(e) => setFromQuery(e.target.value)}
-            placeholder="e.g. Sri Lanka, New York, CST"
-            className="liquid-glass-recessed w-full rounded-2xl px-4 py-2.5 text-sm text-[#F4F5F8] placeholder-[#737680] focus:border-[#65DDF2]/60 focus:ring-1 focus:ring-[#65DDF2]/40 focus:outline-none transition-all"
-          />
-
-          {/* Time Picker Bar */}
-          <div className="mt-3 flex items-center justify-between gap-2">
-            <div className="liquid-glass-recessed flex items-center gap-2 rounded-xl px-3 py-1.5 focus-within:border-[#65DDF2]/50 transition-all">
-              <span className="text-xs text-[#737680] select-none">🕒</span>
-              <input
-                type="time"
-                value={inputTime}
-                onChange={(e) => setInputTime(e.target.value)}
-                title="Edit conversion time"
-                className="bg-transparent font-mono text-sm font-semibold text-[#F4F5F8] focus:outline-none cursor-pointer"
-              />
-              <button
-                type="button"
-                onClick={handleSetCurrentTime}
-                className="liquid-glass-l3 rounded-lg px-2 py-0.5 text-[10px] font-semibold text-[#A0A2AC] hover:text-white transition"
-              >
-                Now
-              </button>
+        {/* FROM CARD (White Panel) */}
+        <div className="rounded-[24px] bg-[#FFFFFF] border border-[#DCDAD5] p-7 sm:p-8 shadow-sm flex flex-col justify-between min-h-[260px]">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#F04B0B]" />
+              <span className="text-xs font-black tracking-wider uppercase text-[#050505]">
+                FROM
+              </span>
             </div>
 
-            {resolvedFrom && (
-              <span className="text-[11px] font-mono text-[#737680] truncate max-w-[130px]" title={resolvedFrom}>
-                {resolvedFrom}
-              </span>
-            )}
+            <input
+              type="text"
+              value={fromQuery}
+              onChange={(e) => setFromQuery(e.target.value)}
+              className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#050505] bg-transparent border-none p-0 focus:outline-none w-full"
+            />
+            <p className="text-xs font-medium text-[#555555] mt-1">
+              {resolvedFrom ? `${resolvedFrom} · ${result?.source_offset || "-05:00"}` : "America/New_York · -05:00"}
+            </p>
+          </div>
+
+          <div className="mt-8">
+            <div className="text-6xl sm:text-7xl font-black font-mono tracking-tight text-[#050505] tabular-nums">
+              {fromDisplay.time}
+            </div>
+            <div className="text-sm font-bold text-[#050505] mt-1">
+              {fromDisplay.period} · {fromDisplay.date}
+            </div>
           </div>
         </div>
 
-        {/* Swap Control */}
-        <div className="flex sm:h-[46px] items-center justify-center sm:col-span-1">
+        {/* Circular Swap Button (↔) */}
+        <div className="flex justify-center -my-3 md:my-0 z-10">
           <button
             type="button"
-            onClick={swapQueries}
-            className="liquid-glass-l3 mt-6 sm:mt-0 rounded-2xl p-3 text-[#A0A2AC] transition hover:text-[#F4F5F8] hover:border-white/25 active:scale-95"
-            title="Swap locations"
+            onClick={swapLocations}
+            className="h-12 w-12 rounded-full bg-[#D8D7D2] hover:bg-[#c9c8c3] text-[#050505] flex items-center justify-center text-lg font-bold shadow-sm transition active:scale-95"
+            title="Swap cities"
           >
-            ⇄
+            ↔
           </button>
         </div>
 
-        {/* Destination Column */}
-        <div className="sm:col-span-3">
-          <label className="block text-xs font-semibold tracking-wider text-[#A0A2AC] uppercase mb-2">
-            Destination
-          </label>
-          <input
-            type="text"
-            value={toQuery}
-            onChange={(e) => setToQuery(e.target.value)}
-            placeholder="e.g. England, Tokyo, London"
-            className="liquid-glass-recessed w-full rounded-2xl px-4 py-2.5 text-sm text-[#F4F5F8] placeholder-[#737680] focus:border-[#65DDF2]/60 focus:ring-1 focus:ring-[#65DDF2]/40 focus:outline-none transition-all"
-          />
-          <div className="mt-3 flex items-center justify-between text-[11px] text-[#737680] px-1">
-            {resolvedTo ? (
-              <span className="font-mono truncate" title={resolvedTo}>{resolvedTo}</span>
-            ) : (
-              <span>Resolves place, abbr, or coords</span>
-            )}
-            {loading && <span className="text-[#65DDF2] animate-pulse font-medium">Calculating...</span>}
+        {/* TO CARD (Solid Black Panel) */}
+        <div className="rounded-[24px] bg-[#0A0A0A] text-white p-7 sm:p-8 shadow-md flex flex-col justify-between min-h-[260px]">
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="h-2.5 w-2.5 rounded-full bg-[#F04B0B]" />
+              <span className="text-xs font-black tracking-wider uppercase text-white">
+                TO
+              </span>
+            </div>
+
+            <input
+              type="text"
+              value={toQuery}
+              onChange={(e) => setToQuery(e.target.value)}
+              className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white bg-transparent border-none p-0 focus:outline-none w-full"
+            />
+            <p className="text-xs font-medium text-[#888888] mt-1">
+              {resolvedTo ? `${resolvedTo} · ${result?.target_offset || "+00:00"}` : "Europe/London · +00:00"}
+              {loading && <span className="text-[#F04B0B] ml-2 animate-pulse">...</span>}
+            </p>
+          </div>
+
+          <div className="mt-8">
+            <div className="text-6xl sm:text-7xl font-black font-mono tracking-tight text-white tabular-nums">
+              {toDisplay.time}
+            </div>
+            <div className="text-sm font-bold text-[#888888] mt-1">
+              {toDisplay.period} · {toDisplay.date}
+            </div>
           </div>
         </div>
 
       </div>
 
-      {errorMessage && (
-        <div className="mt-4 rounded-xl bg-red-950/30 border border-red-500/20 p-2.5 text-center text-xs text-red-300">
-          {errorMessage}
-        </div>
-      )}
+      {/* Bottom Controls Bar */}
+      <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
+        {/* Left: Date / Time Picker Pills */}
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 rounded-full bg-[#FFFFFF] border border-[#DCDAD5] px-4 py-2 text-xs font-bold text-[#050505] cursor-pointer shadow-sm hover:bg-[#F4F3EE] transition">
+            <span>📅</span>
+            <span>Select date and time</span>
+            <input
+              type="time"
+              value={inputTime}
+              onChange={(e) => setInputTime(e.target.value)}
+              className="sr-only"
+            />
+          </label>
 
-      {/* Bottom Area: Origin Offset / Digital Clock / Unified Glass Actions */}
-      <div className="mt-8 grid grid-cols-1 items-center gap-6 border-t border-white/[0.08] pt-8 lg:grid-cols-12">
-        
-        {/* Origin Offset */}
-        <div className="text-center lg:col-span-3 lg:text-left">
-          <div className="text-xs uppercase tracking-wider text-[#A0A2AC] font-semibold">
-            Origin Offset
-          </div>
-          <div className="mt-1 font-mono text-xl font-bold text-[#F4F5F8]">
-            {result ? formatOffset(result.source_abbrev, result.source_offset) : "—"}
-          </div>
-          <div className="text-[11px] text-[#737680] mt-0.5">
-            {resolvedFrom ? resolvedFrom.replace(/_/g, " ") : ""}
-          </div>
-        </div>
-
-        {/* Smoked Glass 2-Leaf Flip Clock Display */}
-        <div className="flex justify-center lg:col-span-6">
-          <div className="cnc-12__board" aria-hidden="true">
-            <div className="cnc-12__group" data-unit="h">
-              <FlipCard digit={targetHours?.[0] ?? "0"} />
-              <FlipCard digit={targetHours?.[1] ?? "0"} />
-              <small className="cnc-12__cap">hrs</small>
-            </div>
-
-            <span className="cnc-12__colon">:</span>
-
-            <div className="cnc-12__group" data-unit="m">
-              <FlipCard digit={targetMins?.[0] ?? "0"} />
-              <FlipCard digit={targetMins?.[1] ?? "0"} />
-              <small className="cnc-12__cap">min</small>
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={handleSetNow}
+            className="flex items-center gap-1.5 rounded-full bg-[#FFFFFF] border border-[#DCDAD5] px-4 py-2 text-xs font-bold text-[#050505] shadow-sm hover:bg-[#F4F3EE] transition"
+          >
+            <span>Now</span>
+            <span className="text-[10px]">⌵</span>
+          </button>
         </div>
 
-        {/* Destination Info & Vertical Liquid Glass Action Stack */}
-        <div className="flex flex-col items-center lg:col-span-3 lg:items-end">
-          <div className="text-center lg:text-right mb-3">
-            <div className="text-xs uppercase tracking-wider text-[#A0A2AC] font-semibold">
-              Destination
-            </div>
-            <div className="font-mono text-sm font-semibold text-[#F4F5F8]">
-              {result ? formatOffset(result.target_abbrev, result.target_offset) : "—"}
-            </div>
-          </div>
-
-          {/* Unified Liquid Glass Buttons */}
-          <div className="flex w-full max-w-[200px] flex-col gap-2">
-            {/* 1. Save Clock */}
-            {resolvedFrom && resolvedTo && (
-              <button
-                type="button"
-                onClick={handleSaveClock}
-                className="liquid-glass-l2 flex items-center gap-2.5 rounded-xl px-3.5 py-2 text-xs font-semibold text-[#F4F5F8] transition hover:bg-white/[0.08] hover:border-white/20 active:scale-98"
-              >
-                <svg className="h-4 w-4 text-[#48CFCB] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-                <span>Save Clock</span>
-              </button>
-            )}
-
-            {/* 2. Google Meet */}
-            {googleUrl && (
-              <a
-                href={googleUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="liquid-glass-l2 flex items-center gap-2.5 rounded-xl px-3.5 py-2 text-xs font-semibold text-[#F4F5F8] transition hover:bg-white/[0.08] hover:border-white/20 active:scale-98"
-              >
-                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
-                  <path fill="#00832d" d="M15 12l4.5-3.5v7L15 12z" />
-                  <path fill="#0066da" d="M4 6.5A1.5 1.5 0 0 1 5.5 5h8A1.5 1.5 0 0 1 15 6.5V11H4V6.5z" />
-                  <path fill="#e94235" d="M4 11h11v2H4z" />
-                  <path fill="#2684fc" d="M4 13h11v4.5a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 4 17.5V13z" />
-                </svg>
-                <span>Google Meet</span>
-              </a>
-            )}
-
-            {/* 3. Microsoft Teams */}
-            {teamsUrl && (
-              <a
-                href={teamsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="liquid-glass-l2 flex items-center gap-2.5 rounded-xl px-3.5 py-2 text-xs font-semibold text-[#F4F5F8] transition hover:bg-white/[0.08] hover:border-white/20 active:scale-98"
-              >
-                <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="#8B83FF">
-                  <path d="M16.5 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM19.5 8.5h-6a1.5 1.5 0 0 0-1.5 1.5v4.25c0 .69.56 1.25 1.25 1.25h5.5c1.24 0 2.25-1.01 2.25-2.25v-3.25c0-.83-.67-1.5-1.5-1.5z" opacity="0.85"/>
-                  <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM13.5 10.5h-7A2.5 2.5 0 0 0 4 13v5a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-5a2.5 2.5 0 0 0-1.5-2.5z" fill="#8B83FF" />
-                </svg>
-                <span>Microsoft Teams</span>
-              </a>
-            )}
-
-            {/* 4. Zoom */}
+        {/* Right: Meeting Launchers + Save Conversion */}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Google Meet */}
+          {googleUrl && (
             <a
-              href={getZoomScheduleUrl()}
+              href={googleUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="liquid-glass-l2 flex items-center gap-2.5 rounded-xl px-3.5 py-2 text-xs font-semibold text-[#F4F5F8] transition hover:bg-white/[0.08] hover:border-white/20 active:scale-98"
+              className="rounded-full bg-[#FFFFFF] border border-[#DCDAD5] px-4 py-2 text-xs font-bold text-[#050505] flex items-center gap-1.5 hover:bg-[#F4F3EE] shadow-sm transition"
             >
-              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="#2D8CFF">
-                <path d="M4.5 7h10A1.5 1.5 0 0 1 16 8.5v7a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 3 15.5v-7A1.5 1.5 0 0 1 4.5 7zm13 3.5l3.5-2.5v8l-3.5-2.5v-3z" />
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24">
+                <path fill="#00832d" d="M15 12l4.5-3.5v7L15 12z" />
+                <path fill="#0066da" d="M4 6.5A1.5 1.5 0 0 1 5.5 5h8A1.5 1.5 0 0 1 15 6.5V11H4V6.5z" />
+                <path fill="#e94235" d="M4 11h11v2H4z" />
+                <path fill="#2684fc" d="M4 13h11v4.5a1.5 1.5 0 0 1-1.5 1.5h-8A1.5 1.5 0 0 1 4 17.5V13z" />
               </svg>
-              <span>Zoom Meeting</span>
+              <span>Google Meet</span>
             </a>
-          </div>
-        </div>
+          )}
 
+          {/* Microsoft Teams */}
+          {teamsUrl && (
+            <a
+              href={teamsUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="rounded-full bg-[#FFFFFF] border border-[#DCDAD5] px-4 py-2 text-xs font-bold text-[#050505] flex items-center gap-1.5 hover:bg-[#F4F3EE] shadow-sm transition"
+            >
+              <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="#5059C9">
+                <path d="M16.5 7.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zM19.5 8.5h-6a1.5 1.5 0 0 0-1.5 1.5v4.25c0 .69.56 1.25 1.25 1.25h5.5c1.24 0 2.25-1.01 2.25-2.25v-3.25c0-.83-.67-1.5-1.5-1.5z" opacity="0.85"/>
+                <path d="M10 9a3 3 0 1 0 0-6 3 3 0 0 0 0 6zM13.5 10.5h-7A2.5 2.5 0 0 0 4 13v5a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-5a2.5 2.5 0 0 0-1.5-2.5z" fill="#7B83EB" />
+              </svg>
+              <span>Teams</span>
+            </a>
+          )}
+
+          {/* Zoom */}
+          <a
+            href={getZoomScheduleUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-full bg-[#FFFFFF] border border-[#DCDAD5] px-4 py-2 text-xs font-bold text-[#050505] flex items-center gap-1.5 hover:bg-[#F4F3EE] shadow-sm transition"
+          >
+            <svg className="h-4 w-4 shrink-0" viewBox="0 0 24 24" fill="#2D8CFF">
+              <path d="M4.5 7h10A1.5 1.5 0 0 1 16 8.5v7a1.5 1.5 0 0 1-1.5 1.5h-10A1.5 1.5 0 0 1 3 15.5v-7A1.5 1.5 0 0 1 4.5 7zm13 3.5l3.5-2.5v8l-3.5-2.5v-3z" />
+            </svg>
+            <span>Zoom</span>
+          </a>
+
+          {/* Save Conversion */}
+          <button
+            type="button"
+            onClick={handleSaveClock}
+            className="rounded-full bg-[#F04B0B] hover:bg-[#d64107] text-white px-6 py-2 text-xs sm:text-sm font-bold tracking-tight shadow-md transition active:scale-95"
+          >
+            Save Conversion +
+          </button>
+        </div>
       </div>
     </div>
   );

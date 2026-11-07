@@ -1,28 +1,28 @@
 // src/components/sections/FeaturePreview.tsx
-
 import { Container } from "@/components/layout/Container";
 import { QuickConverter } from "@/components/sections/QuickConverter";
 
 export function FeaturePreview() {
   return (
-    <section className="border-t border-zinc-800/80 bg-zinc-950/40 py-20">
+    <section className="py-16 bg-[#E9E9E9]">
       <Container>
+        {/* Section Heading */}
         <div className="mb-10 text-center">
-          <h2 className="text-2xl font-bold tracking-tight text-white sm:text-3xl">
+          <h2 className="text-3xl font-black tracking-tight text-[#050505] sm:text-4xl">
             Track time without timezone math
           </h2>
-          <p className="mt-2 text-zinc-400">
+          <p className="mt-2 text-sm font-medium text-[#777777]">
             Powered by canonical IANA zones with instant DST corrections.
           </p>
         </div>
 
-        {/* Interactive Quick Time Conversion Widget */}
-        <div className="mb-16">
+        {/* The Converted High-Contrast Converter */}
+        <div className="mb-14">
           <QuickConverter />
         </div>
 
-        {/* Feature Cards */}
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {/* Feature Cards: Crisp White on Warm Grey */}
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {[
             {
               title: "Instant Search & Resolution",
@@ -39,11 +39,11 @@ export function FeaturePreview() {
           ].map((feature, i) => (
             <div
               key={i}
-              className="rounded-xl border border-zinc-800 bg-zinc-900/50 p-6"
+              className="rounded-2xl border border-[#D0D0D0] bg-[#FFFFFF] p-6 shadow-sm transition hover:border-[#F04B0B]/50"
             >
-              <div className="h-8 w-8 rounded-lg bg-zinc-800 mb-4" />
-              <h3 className="font-semibold text-white">{feature.title}</h3>
-              <p className="mt-2 text-sm text-zinc-400">{feature.desc}</p>
+              <div className="h-3 w-3 rounded-sm bg-[#F04B0B] mb-4" />
+              <h3 className="font-black text-[#050505]">{feature.title}</h3>
+              <p className="mt-2 text-xs leading-relaxed text-[#777777]">{feature.desc}</p>
             </div>
           ))}
         </div>

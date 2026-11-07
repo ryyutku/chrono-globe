@@ -11,57 +11,58 @@ export default function WorldClocksPage() {
 
   if (!isLoaded) {
     return (
-      <main className="min-h-screen bg-[#08090C] py-16 text-[#F4F5F8]">
+      <main className="min-h-screen bg-[#E9E9E9] py-16 text-[#050505]">
         <Container>
-          <div className="text-sm text-[#737680]">Loading saved clocks...</div>
+          <div className="text-sm font-mono text-[#777777]">Loading saved clocks...</div>
         </Container>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-[#08090C] py-12 text-[#F4F5F8]">
+    <main className="min-h-screen bg-[#E9E9E9] py-12 text-[#050505]">
       <Container>
         {/* Header */}
-        <div className="flex flex-col gap-2 border-b border-white/[0.08] pb-8 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 border-b border-[#D0D0D0] pb-6 sm:flex-row sm:items-baseline sm:justify-between">
           <div>
-            <h1 className="text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-[#050505]">
               World Clocks
             </h1>
-            <p className="mt-1 text-sm text-[#A0A2AC]">
-              Real-time synchronized clocks between your saved timezone corridors.
+            <p className="mt-1 text-sm font-medium text-[#777777]">
+              Track real-time differences across your saved timezone corridors.
             </p>
           </div>
 
           <Link
             href="/"
-            className="liquid-glass-l3 self-start rounded-full px-4 py-2 text-xs font-semibold text-[#F4F5F8] hover:text-white transition"
+            className="self-start rounded-full bg-[#050505] px-4 py-2 text-xs font-bold text-[#FFFFFF] hover:bg-[#F04B0B] transition"
           >
             + New Conversion
           </Link>
         </div>
 
-        {/* Clocks Grid */}
+        {/* Grid */}
         <div className="mt-8">
           {pairs.length === 0 ? (
-            <div className="liquid-glass-l1 rounded-3xl p-12 text-center border-dashed border-white/10">
-              <h3 className="font-semibold text-white">No saved conversions yet</h3>
-              <p className="mt-1 text-sm text-[#737680]">
-                Convert a timezone on the home page and save it here.
+            <div className="rounded-2xl border border-dashed border-[#D0D0D0] bg-[#FFFFFF] p-12 text-center">
+              <h3 className="font-bold text-[#050505]">No saved clocks yet</h3>
+              <p className="mt-1 text-xs text-[#777777]">
+                Convert any time on the Home page and click Save Clock to pin it here.
               </p>
               <Link
                 href="/"
-                className="mt-4 inline-block text-xs font-semibold text-[#65DDF2] underline hover:text-white"
+                className="mt-4 inline-block text-xs font-bold text-[#F04B0B] underline"
               >
                 Go to Converter
               </Link>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {pairs.map((pair) => (
+              {pairs.map((pair, index) => (
                 <ClockCard
                   key={pair.id}
                   pair={pair}
+                  isPrimary={index === 0}
                   onRemove={removeClockPair}
                 />
               ))}

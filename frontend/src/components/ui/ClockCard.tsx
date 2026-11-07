@@ -6,17 +6,17 @@ import { SavedClockPair } from "@/types/clock";
 
 interface ClockCardProps {
   pair: SavedClockPair;
+  isPrimary?: boolean;
   onRemove: (id: string) => void;
 }
 
-export function ClockCard({ pair, onRemove }: ClockCardProps) {
+export function ClockCard({ pair, isPrimary = false, onRemove }: ClockCardProps) {
   const [fromTime, setFromTime] = useState("");
   const [toTime, setToTime] = useState("");
 
   useEffect(() => {
     function tick() {
       const now = new Date();
-
       const formatTime = (tz: string) =>
         new Intl.DateTimeFormat("en-US", {
           timeZone: tz,
@@ -43,57 +43,45 @@ export function ClockCard({ pair, onRemove }: ClockCardProps) {
   const fromCity = cleanName(pair.fromZone);
   const toCity = cleanName(pair.toZone);
 
+  const cardBg = isPrimary ? "bg-[#050505] text-[#FFFFFF] border-[#050505]" : "bg-[#FFFFFF] text-[#050505] border-[#D0D0D0]";
+  const mutedText = isPrimary ? "text-[#A0A0A0]" : "text-[#777777]";
+  const dividerBorder = isPrimary ? "border-[#171717]" : "border-[#E9E9E9]";
+
   return (
-    <div className="liquid-glass-l2 group relative flex flex-col justify-between overflow-hidden rounded-2xl p-5 transition-all duration-300 hover:border-white/25 hover:shadow-2xl">
-      
+    <div className={`group relative flex flex-col justify-between rounded-2xl border p-5 shadow-sm transition-all hover:shadow-md ${cardBg}`}>
       {/* Remove Button */}
       <button
         onClick={() => onRemove(pair.id)}
-        className="absolute top-4 right-4 text-[#737680] hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity p-1 text-xs"
-        title="Remove clock pair"
+        className={`absolute top-4 right-4 text-xs p-1 font-bold transition ${mutedText} hover:text-[#F04B0B]`}
+        title="Remove clock"
       >
         ✕
       </button>
 
-      {/* Origin (From) - Big Display */}
+      {/* Main City Time */}
       <div>
         <div className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full bg-[#65DDF2] animate-pulse" />
-          <span className="text-xs font-semibold text-[#A0A2AC] uppercase tracking-wider">
+          {isPrimary && <span className="h-2 w-2 rounded-full bg-[#F04B0B]" />}
+          <h3 className="text-base font-black uppercase tracking-tight">
             {fromCity}
-          </span>
-          <span className="text-[10px] font-mono text-[#737680] truncate max-w-[120px]">
-            {pair.fromZone}
-          </span>
+          </h3>
         </div>
+        <p className={`font-mono text-[11px] ${mutedText} truncate`}>
+          {pair.fromZone}
+        </p>
 
-        <div className="my-3 flex items-center justify-between">
-          <div className="font-mono text-3xl font-black tracking-tight text-[#F4F5F8] sm:text-4xl">
-            {fromTime || "--:--:--"}
-          </div>
-
-          {/* Reserved Analog Dial Slot */}
-          <div 
-            className="liquid-glass-l3 relative flex h-11 w-11 shrink-0 items-center justify-center rounded-full"
-            title="Analog dial slot"
-          >
-            <div className="h-1.5 w-1.5 rounded-full bg-[#65DDF2]" />
-          </div>
+        <div className="my-3 font-mono text-4xl font-black tracking-tight tabular-nums">
+          {fromTime || "--:--:--"}
         </div>
       </div>
 
-      {/* Destination (To) - Secondary Display */}
-      <div className="mt-2 border-t border-white/[0.08] pt-3 flex items-center justify-between">
-        <div className="flex items-center gap-1.5 text-xs text-[#A0A2AC]">
-          <span className="text-[#737680]">↳</span>
-          <span className="font-medium text-[#F4F5F8]">{toCity}:</span>
-        </div>
-
-        <div className="font-mono text-lg font-bold text-[#A0A2AC]">
+      {/* Destination Reference Line */}
+      <div className={`mt-2 border-t pt-3 flex items-center justify-between text-xs ${dividerBorder}`}>
+        <span className={mutedText}>↳ {toCity}:</span>
+        <span className="font-mono font-bold tabular-nums">
           {toTime || "--:--:--"}
-        </div>
+        </span>
       </div>
-
     </div>
   );
 }
