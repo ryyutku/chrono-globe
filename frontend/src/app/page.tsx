@@ -26,10 +26,6 @@ export default function HomePage() {
             </Link>
           </>
         }
-        media={{
-          type: "video",
-          src : "/videos/earth.mp4",
-        }}
       />
 
       <FeaturePreview />

@@ -11,7 +11,7 @@ import {
   getZoomScheduleUrl,
 } from "@/lib/utils/calendar";
 
-const STORAGE_KEY = "timespot_planner_full_state";
+const PLANNER_STORAGE_KEY = "timespot_planner_v2";
 
 interface Participant {
   id: string;
@@ -25,44 +25,11 @@ const DEFAULT_PARTICIPANTS: Participant[] = [
   { id: "3", name: "Tokyo", zone: "Asia/Tokyo" },
 ];
 
-function getInitialPlannerState() {
-  if (typeof window === "undefined") {
-    return {
-      selectedDate: new Date().toISOString().slice(0, 10),
-      selectedHour: 14 as number | null,
-      durationHours: 1,
-      participants: DEFAULT_PARTICIPANTS,
-    };
-  }
-
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
-        selectedDate: parsed.selectedDate || new Date().toISOString().slice(0, 10),
-        selectedHour: parsed.selectedHour !== undefined ? parsed.selectedHour : 14,
-        durationHours: parsed.durationHours || 1,
-        participants: parsed.participants?.length ? parsed.participants : DEFAULT_PARTICIPANTS,
-      };
-    }
-  } catch {}
-
-  return {
-    selectedDate: new Date().toISOString().slice(0, 10),
-    selectedHour: 14 as number | null,
-    durationHours: 1,
-    participants: DEFAULT_PARTICIPANTS,
-  };
-}
-
 export default function MeetingPlannerPage() {
-  const initial = getInitialPlannerState();
-
-  const [selectedDate, setSelectedDate] = useState(initial.selectedDate);
-  const [selectedHour, setSelectedHour] = useState<number | null>(initial.selectedHour);
-  const [durationHours, setDurationHours] = useState(initial.durationHours);
-  const [participants, setParticipants] = useState<Participant[]>(initial.participants);
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [selectedHour, setSelectedHour] = useState<number | null>(14); // null when unselected
+  const [durationHours, setDurationHours] = useState(1);
+  const [participants, setParticipants] = useState<Participant[]>(DEFAULT_PARTICIPANTS);
 
   const [newCity, setNewCity] = useState("");
   const [toast, setToast] = useState<{ message: string; type: "success" | "warning" } | null>(null);
@@ -70,14 +37,29 @@ export default function MeetingPlannerPage() {
 
   const { addClockPair } = useSavedClocks();
 
-  // Save changes to localStorage on any state change
+  // Load state from localStorage on mount
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(PLANNER_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (parsed.selectedDate) setSelectedDate(parsed.selectedDate);
+        if (parsed.selectedHour !== undefined) setSelectedHour(parsed.selectedHour);
+        if (parsed.durationHours) setDurationHours(parsed.durationHours);
+        if (parsed.participants?.length) setParticipants(parsed.participants);
+      }
+    } catch {}
+  }, []);
+
+  // Save state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(
-      STORAGE_KEY,
+      PLANNER_STORAGE_KEY,
       JSON.stringify({ selectedDate, selectedHour, durationHours, participants })
     );
   }, [selectedDate, selectedHour, durationHours, participants]);
 
+  // Tomorrow button helper
   const isTomorrowActive = useMemo(() => {
     const tm = new Date();
     tm.setDate(tm.getDate() + 1);
@@ -98,9 +80,10 @@ export default function MeetingPlannerPage() {
     setSelectedDate(new Date().toISOString().slice(0, 10));
   };
 
+  // Toggle selection (allows unselecting an hour)
   const handleToggleHour = (h: number) => {
     if (selectedHour === h) {
-      setSelectedHour(null);
+      setSelectedHour(null); // Unselect
     } else {
       setSelectedHour(h);
     }
@@ -216,6 +199,7 @@ export default function MeetingPlannerPage() {
 
         {/* Controls Bar */}
         <div className="flex flex-wrap items-center gap-2">
+          {/* Today Button */}
           <button
             type="button"
             onClick={handleSetToday}
@@ -228,6 +212,7 @@ export default function MeetingPlannerPage() {
             Today
           </button>
 
+          {/* Working Tomorrow Button */}
           <button
             type="button"
             onClick={handleSetTomorrow}
@@ -240,6 +225,7 @@ export default function MeetingPlannerPage() {
             Tomorrow
           </button>
 
+          {/* Working Clean Date Trigger */}
           <button
             type="button"
             onClick={() => dateInputRef.current?.showPicker()}
@@ -262,6 +248,7 @@ export default function MeetingPlannerPage() {
             className="sr-only"
           />
 
+          {/* Duration Pill */}
           <div className="rounded-full bg-[#FFFFFF] border border-[#DCDAD5] p-1 flex items-center">
             {[1, 2, 3].map((h) => (
               <button
@@ -278,6 +265,7 @@ export default function MeetingPlannerPage() {
             ))}
           </div>
 
+          {/* Add City Input */}
           <form onSubmit={handleAddParticipant} className="flex items-center rounded-full bg-[#FFFFFF] border border-[#DCDAD5] pl-3.5 pr-1 py-1">
             <input
               type="text"
@@ -299,6 +287,7 @@ export default function MeetingPlannerPage() {
       {/* Main Timeline Grid */}
       <div className="overflow-x-auto timespot-scrollbar pb-4">
         <div className="min-w-[1200px]">
+          {/* Header Row */}
           <div className="grid grid-cols-[180px_repeat(24,1fr)] items-center gap-1.5 mb-2 font-mono text-[11px] font-bold text-[#555555]">
             <div className="text-xs uppercase font-black text-[#050505]">
               LOCATIONS
@@ -314,12 +303,14 @@ export default function MeetingPlannerPage() {
             ))}
           </div>
 
+          {/* Participant Tracks */}
           <div className="space-y-2">
             {timelineData.map(({ participant, hours }) => (
               <div
                 key={participant.id}
                 className="grid grid-cols-[180px_repeat(24,1fr)] items-center gap-1.5"
               >
+                {/* Location Label */}
                 <div className="flex items-center gap-2 pr-3">
                   <span className="h-2 w-2 rounded-full bg-[#F04B0B] shrink-0" />
                   <div className="overflow-hidden">
@@ -332,6 +323,7 @@ export default function MeetingPlannerPage() {
                   </div>
                 </div>
 
+                {/* 24 Hour Pills with Click-to-Toggle Unselect */}
                 {hours.map((h) => {
                   const active = isSelected(h.refHour);
 
@@ -358,12 +350,14 @@ export default function MeetingPlannerPage() {
 
       {/* Bottom Summary Bar */}
       <div className="mt-8 flex flex-wrap items-center justify-between gap-4 pt-4 border-t border-[#DCDAD5]">
+        {/* Left Label */}
         <div className="text-xs font-black uppercase tracking-wider text-[#050505]">
           {selectedHour !== null
             ? `SELECTED WINDOW · ${durationHours} HOUR${durationHours > 1 ? "S" : ""}`
             : "NO WINDOW SELECTED"}
         </div>
 
+        {/* Center: Location Pills */}
         <div className="flex flex-wrap items-center gap-2">
           {selectedHour !== null ? (
             timelineData.map(({ participant, hours }) => {
@@ -387,6 +381,7 @@ export default function MeetingPlannerPage() {
           )}
         </div>
 
+        {/* Right Actions */}
         <div className="flex items-center gap-2">
           <button
             onClick={handleSavePair}
