@@ -8,27 +8,31 @@
     bottom: 0;
     overflow: hidden;
     background:
-        radial-gradient(1px 1px at 25px 35px, #ffffff, rgba(0, 0, 0, 0)),
-        radial-gradient(1px 1px at 85px 120px, rgba(255, 255, 255, 0.8), rgba(0, 0, 0, 0)),
-        radial-gradient(1.5px 1.5px at 160px 70px, #ffffff, rgba(0, 0, 0, 0)),
-        radial-gradient(1px 1px at 240px 190px, rgba(255, 255, 255, 0.7), rgba(0, 0, 0, 0)),
-        radial-gradient(1.5px 1.5px at 320px 110px, #ffffff, rgba(0, 0, 0, 0)),
+        radial-gradient(1px 1px at 25px 35px, rgba(255, 255, 255, 0.9), rgba(0, 0, 0, 0)),
+        radial-gradient(1px 1px at 85px 120px, rgba(255, 255, 255, 0.7), rgba(0, 0, 0, 0)),
+        radial-gradient(1.5px 1.5px at 160px 70px, rgba(255, 255, 255, 0.9), rgba(0, 0, 0, 0)),
+        radial-gradient(1px 1px at 240px 190px, rgba(255, 255, 255, 0.6), rgba(0, 0, 0, 0)),
+        radial-gradient(1.5px 1.5px at 320px 110px, rgba(255, 255, 255, 0.8), rgba(0, 0, 0, 0)),
         radial-gradient(ellipse at 50% 50%, #0a0e1a 0%, #020408 100%);
     background-size: 350px 350px, 400px 400px, 300px 300px, 450px 450px, 500px 500px, 100% 100%;
 }
 
-/* Loading Overlay */
+/* ==========================================================================
+   Loading Overlay (TimeSpot Bauhaus/Minimalist Theme)
+   ========================================================================== */
+
 .globe-loading-overlay {
     position: absolute;
     inset: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: radial-gradient(ellipse at 50% 50%, rgba(10, 14, 26, 0.85) 0%, rgba(2, 4, 8, 0.95) 100%);
-    backdrop-filter: blur(8px);
+    background: rgba(236, 235, 230, 0.82);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     z-index: 50;
     pointer-events: auto;
-    transition: opacity 0.5s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.5s ease;
+    transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.45s ease;
 }
 
 .globe-loading-overlay--fade {
@@ -41,34 +45,75 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 16px;
-    padding: 36px 44px;
-    border-radius: 20px;
-    background: rgba(15, 23, 42, 0.75);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    box-shadow: 0 24px 48px -12px rgba(0, 0, 0, 0.8), 0 0 35px rgba(56, 189, 248, 0.12);
-    animation: globeCardFloat 3s ease-in-out infinite;
+    gap: 18px;
+    padding: 38px 46px;
+    border-radius: 28px;
+    background: #FFFFFF;
+    border: 1.5px solid #DCDAD5;
+    box-shadow:
+        0 24px 48px -12px rgba(5, 5, 5, 0.12),
+        0 8px 18px -4px rgba(5, 5, 5, 0.06);
+    animation: globeCardFloat 3.2s ease-in-out infinite;
+    max-width: 360px;
+    width: 90%;
+}
+
+.globe-loading-badge {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 12px;
+    border-radius: 9999px;
+    background: #F4F3EE;
+    border: 1px solid #DCDAD5;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #F04B0B;
+}
+
+.globe-loading-badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    background-color: #F04B0B;
+    animation: badgePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes badgePulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.35);
+        opacity: 0.7;
+    }
 }
 
 .globe-hourglass-wrapper {
     position: relative;
-    width: 60px;
-    height: 60px;
+    width: 68px;
+    height: 68px;
+    border-radius: 9999px;
+    background: #F4F3EE;
+    border: 1.5px solid #DCDAD5;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
 }
 
 .globe-hourglass-icon {
-    width: 52px;
-    height: 52px;
-    filter: drop-shadow(0 0 12px rgba(56, 189, 248, 0.6));
+    width: 38px;
+    height: 38px;
     animation: hourglassFlip 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
     transform-origin: center center;
 }
 
 .hourglass-stream {
-    animation: sandFlow 0.5s linear infinite;
+    animation: sandFlow 0.55s linear infinite;
 }
 
 @keyframes hourglassFlip {
@@ -103,7 +148,7 @@
         transform: translateY(0);
     }
     50% {
-        transform: translateY(-5px);
+        transform: translateY(-4px);
     }
 }
 
@@ -112,29 +157,63 @@
     flex-direction: column;
     align-items: center;
     text-align: center;
-    gap: 6px;
+    gap: 4px;
 }
 
 .globe-loading-title {
-    font-size: 16px;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    color: #f8fafc;
-    background: linear-gradient(135deg, #ffffff 0%, #93c5fd 60%, #38bdf8 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
+    font-size: 18px;
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    color: #050505;
 }
 
 .globe-loading-subtitle {
     font-size: 12px;
-    color: #94a3b8;
+    font-weight: 500;
+    color: #555555;
     letter-spacing: 0.01em;
 }
+
+.globe-loading-bar-track {
+    width: 160px;
+    height: 5px;
+    border-radius: 9999px;
+    background: #ECEBE6;
+    overflow: hidden;
+    position: relative;
+    margin-top: 4px;
+}
+
+.globe-loading-bar-thumb {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 45%;
+    border-radius: 9999px;
+    background: #F04B0B;
+    animation: loadingBarSlide 1.6s cubic-bezier(0.65, 0, 0.35, 1) infinite;
+}
+
+@keyframes loadingBarSlide {
+    0% {
+        left: -45%;
+    }
+    50% {
+        left: 40%;
+    }
+    100% {
+        left: 100%;
+    }
+}
+
+/* ==========================================================================
+   Globe Control Panels
+   ========================================================================== */
 
 .globe-page .globe-panel {
     position: absolute;
     top: 20px;
-    padding: 18px;
+    padding: 20px;
     max-height: calc(100vh - 104px);
     overflow-y: auto;
     font-size: 14px;
@@ -143,85 +222,89 @@
 
 .globe-page .globe-panel--left {
     left: 20px;
-    width: 300px;
+    width: 320px;
 }
 
 .globe-page .globe-panel--right {
     right: 20px;
-    width: 320px;
+    width: 330px;
 }
 
 .globe-panel__title {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 0.05em;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #a1a1aa;
+    color: #555555;
     margin-bottom: 10px;
 }
 
 .globe-select {
     width: 100%;
-    padding: 9px 12px;
-    border-radius: 8px;
-    border: 1px solid #3f3f46;
-    background: #09090b;
-    color: #f4f4f5;
+    padding: 10px 14px;
+    border-radius: 12px;
+    border: 1.5px solid #DCDAD5;
+    background: #F4F3EE;
+    color: #050505;
     font-size: 13px;
+    font-weight: 600;
     outline: none;
-    transition: border-color 0.15s ease;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .globe-select:focus {
-    border-color: #a1a1aa;
+    border-color: #F04B0B;
+    box-shadow: 0 0 0 3px rgba(240, 75, 11, 0.15);
 }
 
 .globe-select option {
-    background: #09090b;
-    color: #f4f4f5;
+    background: #FFFFFF;
+    color: #050505;
 }
 
 .globe-btn {
     display: block;
     margin-top: 10px;
     width: 100%;
-    padding: 8px 16px;
-    border-radius: 8px;
+    padding: 10px 16px;
+    border-radius: 9999px;
     border: none;
-    background: #ffffff;
-    color: #09090b;
+    background: #F04B0B;
+    color: #FFFFFF;
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 700;
     cursor: pointer;
-    transition: background-color 0.15s ease, opacity 0.15s ease;
+    transition: opacity 0.15s ease, transform 0.1s ease;
+    box-shadow: 0 4px 12px rgba(240, 75, 11, 0.25);
 }
 
 .globe-btn:hover {
-    background: #e4e4e7;
+    opacity: 0.92;
 }
 
 .globe-btn:active {
-    opacity: 0.9;
+    transform: scale(0.98);
 }
 
 .globe-btn--ghost {
     background: transparent;
-    border: 1px solid #27272a;
-    color: #a1a1aa;
+    border: 1.5px solid #DCDAD5;
+    color: #555555;
     margin-top: 10px;
-    font-weight: 500;
+    font-weight: 600;
+    box-shadow: none;
 }
 
 .globe-btn--ghost:hover {
-    background: #18181b;
-    color: #ffffff;
-    border-color: #3f3f46;
+    background: #F4F3EE;
+    color: #050505;
+    border-color: #050505;
 }
 
 .globe-pins {
     margin-top: 20px;
     padding-top: 16px;
-    border-top: 1px solid #27272a;
+    border-top: 1px solid #DCDAD5;
 }
 
 .globe-pins__list {
@@ -237,11 +320,12 @@
     justify-content: space-between;
     align-items: center;
     font-size: 13px;
-    padding: 6px 10px;
-    border-radius: 6px;
-    background: rgba(24, 24, 27, 0.6);
-    border: 1px solid rgba(39, 39, 42, 0.6);
-    color: #e4e4e7;
+    padding: 7px 12px;
+    border-radius: 10px;
+    background: #F4F3EE;
+    border: 1px solid #DCDAD5;
+    color: #050505;
+    font-weight: 600;
 }
 
 .globe-pin-row span {
@@ -255,7 +339,7 @@
     border: none;
     background: transparent;
     cursor: pointer;
-    color: #71717a;
+    color: #555555;
     font-size: 13px;
     padding: 2px 6px;
     border-radius: 4px;
@@ -264,8 +348,8 @@
 }
 
 .globe-x:hover {
-    color: #ef4444;
-    background: rgba(239, 68, 68, 0.12);
+    color: #F04B0B;
+    background: rgba(240, 75, 11, 0.12);
 }
 
 .globe-popup__head {
@@ -273,14 +357,14 @@
     justify-content: space-between;
     align-items: center;
     padding-bottom: 12px;
-    border-bottom: 1px solid #27272a;
+    border-bottom: 1px solid #DCDAD5;
     margin-bottom: 10px;
 }
 
 .globe-popup__head strong {
     font-size: 16px;
-    font-weight: 600;
-    color: #ffffff;
+    font-weight: 800;
+    color: #050505;
 }
 
 .globe-clocks-scroll {

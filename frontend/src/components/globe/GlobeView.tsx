@@ -25,41 +25,40 @@ function HourglassIcon({ className = "" }: { className?: string }) {
             className={className}
         >
             <defs>
-                <linearGradient id="hourglass-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#38bdf8" />
-                    <stop offset="100%" stopColor="#818cf8" />
+                <linearGradient id="hourglass-orange" x1="0%" y1="0%" x2="100%" y2="100%">
+                    <stop offset="0%" stopColor="#F04B0B" />
+                    <stop offset="100%" stopColor="#D83F05" />
                 </linearGradient>
             </defs>
-            {/* Hourglass Outer Frame */}
+            {/* Hourglass Outer Frame in Deep Bauhaus Black */}
             <path
                 d="M8 4h16M8 28h16M10 4c0 6 6 8 6 12s-6 6-6 12h12c0-6-6-8-6-12s6-6 6-12H10z"
-                stroke="url(#hourglass-gradient)"
-                strokeWidth="2"
+                stroke="#050505"
+                strokeWidth="2.2"
                 strokeLinecap="round"
                 strokeLinejoin="round"
             />
-            {/* Upper Sand Reservoir */}
+            {/* Upper Sand Reservoir in Vivid Orange */}
             <path
                 d="M12 9c1.5 2 3.5 3 4 3s2.5-1 4-3H12z"
-                fill="url(#hourglass-gradient)"
-                opacity="0.9"
+                fill="url(#hourglass-orange)"
             />
-            {/* Flowing Sand Stream */}
+            {/* Flowing Sand Stream in Vivid Orange */}
             <line
                 x1="16"
                 y1="13"
                 x2="16"
                 y2="23"
-                stroke="url(#hourglass-gradient)"
-                strokeWidth="1.5"
+                stroke="#F04B0B"
+                strokeWidth="2"
                 strokeDasharray="2 2"
+                strokeLinecap="round"
                 className="hourglass-stream"
             />
-            {/* Lower Sand Mound */}
+            {/* Lower Sand Mound in Vivid Orange */}
             <path
                 d="M11 27c1.5-2 3.5-3 5-3s3.5 1 5 3H11z"
-                fill="url(#hourglass-gradient)"
-                opacity="0.9"
+                fill="url(#hourglass-orange)"
             />
         </svg>
     );
@@ -225,12 +224,28 @@ export default function GlobeView() {
             {isLoading && (
                 <div className={`globe-loading-overlay ${isFading ? "globe-loading-overlay--fade" : ""}`}>
                     <div className="globe-loading-card">
+                        {/* TimeSpot Status Badge */}
+                        <div className="globe-loading-badge">
+                            <span className="globe-loading-badge-dot" />
+                            <span>TIMESPOT 3D ENGINE</span>
+                        </div>
+
+                        {/* Animated Orange Hourglass */}
                         <div className="globe-hourglass-wrapper">
                             <HourglassIcon className="globe-hourglass-icon" />
                         </div>
+
+                        {/* Title & Subtitle */}
                         <div className="globe-loading-text">
                             <span className="globe-loading-title">Rendering 3D Globe</span>
-                            <span className="globe-loading-subtitle">Synchronizing timezones and planetary data...</span>
+                            <span className="globe-loading-subtitle">
+                                Synchronizing canonical timezones & map...
+                            </span>
+                        </div>
+
+                        {/* Minimalist Orange Progress Bar */}
+                        <div className="globe-loading-bar-track">
+                            <div className="globe-loading-bar-thumb" />
                         </div>
                     </div>
                 </div>
