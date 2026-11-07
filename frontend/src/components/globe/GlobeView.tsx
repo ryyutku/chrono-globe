@@ -86,6 +86,7 @@ function center(geometry: any) {
     return { lat: lat / ring.length, lng: lng / ring.length };
 }
 
+
 export default function GlobeView() {
     const globeRef = useRef<any>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -124,6 +125,8 @@ export default function GlobeView() {
             controls.maxDistance = 380; // Zoom-out limit so earth stays well-sized
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
+            controls.autoRotate = true;
+            controls.autoRotateSpeed = 0.4;
         }
     };
 
@@ -153,6 +156,35 @@ export default function GlobeView() {
         }, 6000);
         return () => clearTimeout(timer);
     }, []);
+
+    // Pause the spin while a country popup is open
+    useEffect(() => {
+        const controls = globeRef.current?.controls?.();
+        if (controls) controls.autoRotate = !selected;
+    }, [selected]);
+
+    const [pinsLoaded, setPinsLoaded] = useState(false);
+
+    // Load saved pins when the page opens
+    useEffect(() => {
+        try {
+            const saved = sessionStorage.getItem("globe-pins");
+            if (saved) setPins(JSON.parse(saved));
+        } catch {
+            // ignore broken or blocked storage
+        }
+        setPinsLoaded(true);
+    }, []);
+
+    // Save pins every time they change
+    useEffect(() => {
+        if (!pinsLoaded) return;
+        try {
+            sessionStorage.setItem("globe-pins", JSON.stringify(pins));
+        } catch {
+            // ignore broken or blocked storage
+        }
+    }, [pins, pinsLoaded]);
 
     // Load country shapes
     useEffect(() => {
