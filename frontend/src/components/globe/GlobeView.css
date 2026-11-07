@@ -18,7 +18,7 @@
 }
 
 /* ==========================================================================
-   Loading Overlay (TimeSpot Bauhaus/Minimalist Theme)
+   Loading Overlay (Cinematic Space Dissolve & TimeSpot Theme)
    ========================================================================== */
 
 .globe-loading-overlay {
@@ -27,16 +27,29 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(236, 235, 230, 0.82);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
+    /* Vignette blend: soft warm bone-canvas center dissolving into deep cosmic backdrop */
+    background: radial-gradient(
+        circle at 50% 50%,
+        rgba(236, 235, 230, 0.90) 0%,
+        rgba(220, 218, 212, 0.82) 40%,
+        rgba(25, 32, 50, 0.70) 70%,
+        rgba(5, 7, 15, 0.92) 100%
+    );
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     z-index: 50;
     pointer-events: auto;
-    transition: opacity 0.45s cubic-bezier(0.4, 0, 0.2, 1), visibility 0.45s ease;
+    transition:
+        opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+        backdrop-filter 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+        -webkit-backdrop-filter 0.8s cubic-bezier(0.16, 1, 0.3, 1),
+        visibility 0.8s ease;
 }
 
 .globe-loading-overlay--fade {
     opacity: 0;
+    backdrop-filter: blur(0px);
+    -webkit-backdrop-filter: blur(0px);
     visibility: hidden;
     pointer-events: none;
 }
@@ -51,11 +64,20 @@
     background: #FFFFFF;
     border: 1.5px solid #DCDAD5;
     box-shadow:
-        0 24px 48px -12px rgba(5, 5, 5, 0.12),
-        0 8px 18px -4px rgba(5, 5, 5, 0.06);
+        0 24px 48px -12px rgba(5, 5, 5, 0.16),
+        0 8px 18px -4px rgba(5, 5, 5, 0.08);
     animation: globeCardFloat 3.2s ease-in-out infinite;
     max-width: 360px;
     width: 90%;
+    transition:
+        opacity 0.35s ease,
+        transform 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.globe-loading-overlay--fade .globe-loading-card {
+    opacity: 0;
+    transform: scale(0.92) translateY(-12px);
+    animation: none;
 }
 
 .globe-loading-badge {

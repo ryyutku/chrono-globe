@@ -131,18 +131,23 @@ export default function GlobeView() {
 
     const handleGlobeReady = () => {
         configureControls();
-        globeRef.current?.pointOfView?.({ altitude: 2.2 });
 
         const material = globeRef.current?.globeMaterial?.();
         if (material) {
             material.color.setRGB(1.35, 1.35, 1.35);
         }
 
-        // Smooth transition out of loading overlay
+        // Cinematic Fly-In: Start camera further out in deep orbit and glide into focus
+        globeRef.current?.pointOfView?.({ altitude: 3.6 });
+        setTimeout(() => {
+            globeRef.current?.pointOfView?.({ altitude: 2.2 }, 1500);
+        }, 50);
+
+        // Smooth two-stage fade: card gracefully dissipates while cosmic blur melts away
         setIsFading(true);
         setTimeout(() => {
             setIsLoading(false);
-        }, 500);
+        }, 850);
     };
 
     useEffect(() => {
@@ -151,7 +156,7 @@ export default function GlobeView() {
         // Safety fallback timer so loader never gets stuck indefinitely
         const timer = setTimeout(() => {
             setIsFading(true);
-            setTimeout(() => setIsLoading(false), 500);
+            setTimeout(() => setIsLoading(false), 850);
         }, 6000);
         return () => clearTimeout(timer);
     }, []);
