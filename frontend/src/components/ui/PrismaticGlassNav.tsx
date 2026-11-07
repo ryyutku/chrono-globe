@@ -82,10 +82,10 @@ export function PrismaticGlassNav({
 
         {/* Navigation Items with Smooth Active Glass Highlights */}
         {showLinks && (
-          <div className="hidden md:flex items-center gap-1.5 pl-3 border-l border-white/[0.10]">
+          <div className="hidden sm:flex items-center gap-1 sm:gap-1.5 pl-3 border-l border-white/[0.10]">
             <Link
               href="/clocks"
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 ${
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 ${
                 pathname === "/clocks"
                   ? "liquid-glass-l3 text-white border-white/25 shadow-inner"
                   : "text-[#A0A2AC] hover:text-[#F4F5F8] hover:bg-white/[0.06]"
@@ -95,13 +95,23 @@ export function PrismaticGlassNav({
             </Link>
             <Link
               href="/planner"
-              className={`rounded-full px-4 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 ${
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 ${
                 pathname === "/planner"
                   ? "liquid-glass-l3 text-white border-white/25 shadow-inner"
                   : "text-[#A0A2AC] hover:text-[#F4F5F8] hover:bg-white/[0.06]"
               }`}
             >
               Meeting Planner
+            </Link>
+            <Link
+              href="/zones"
+              className={`rounded-full px-3.5 py-1.5 text-xs font-semibold tracking-wide transition-all duration-200 ${
+                pathname === "/zones" || pathname === "/globe"
+                  ? "liquid-glass-l3 text-white border-white/25 shadow-inner"
+                  : "text-[#A0A2AC] hover:text-[#F4F5F8] hover:bg-white/[0.06]"
+              }`}
+            >
+              Timezones
             </Link>
           </div>
         )}
