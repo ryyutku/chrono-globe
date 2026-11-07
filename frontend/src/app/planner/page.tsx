@@ -25,11 +25,42 @@ const DEFAULT_PARTICIPANTS: Participant[] = [
   { id: "3", name: "Tokyo", zone: "Asia/Tokyo" },
 ];
 
+function getStoredPlannerState() {
+  if (typeof window === "undefined") {
+    return {
+      selectedDate: new Date().toISOString().slice(0, 10),
+      selectedHour: 14 as number | null,
+      durationHours: 1,
+      participants: DEFAULT_PARTICIPANTS,
+    };
+  }
+  try {
+    const raw = localStorage.getItem(PLANNER_STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      return {
+        selectedDate: parsed.selectedDate || new Date().toISOString().slice(0, 10),
+        selectedHour: parsed.selectedHour !== undefined ? parsed.selectedHour : 14,
+        durationHours: parsed.durationHours || 1,
+        participants: parsed.participants?.length ? parsed.participants : DEFAULT_PARTICIPANTS,
+      };
+    }
+  } catch {}
+  return {
+    selectedDate: new Date().toISOString().slice(0, 10),
+    selectedHour: 14 as number | null,
+    durationHours: 1,
+    participants: DEFAULT_PARTICIPANTS,
+  };
+}
+
 export default function MeetingPlannerPage() {
-  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [selectedHour, setSelectedHour] = useState<number | null>(14); // null when unselected
-  const [durationHours, setDurationHours] = useState(1);
-  const [participants, setParticipants] = useState<Participant[]>(DEFAULT_PARTICIPANTS);
+  const initial = getStoredPlannerState();
+
+  const [selectedDate, setSelectedDate] = useState(initial.selectedDate);
+  const [selectedHour, setSelectedHour] = useState<number | null>(initial.selectedHour);
+  const [durationHours, setDurationHours] = useState(initial.durationHours);
+  const [participants, setParticipants] = useState<Participant[]>(initial.participants);
 
   const [newCity, setNewCity] = useState("");
   const [toast, setToast] = useState<{ message: string; type: "success" | "warning" } | null>(null);
@@ -37,21 +68,6 @@ export default function MeetingPlannerPage() {
 
   const { addClockPair } = useSavedClocks();
 
-  // Load state from localStorage on mount
-  useEffect(() => {
-    try {
-      const stored = localStorage.getItem(PLANNER_STORAGE_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (parsed.selectedDate) setSelectedDate(parsed.selectedDate);
-        if (parsed.selectedHour !== undefined) setSelectedHour(parsed.selectedHour);
-        if (parsed.durationHours) setDurationHours(parsed.durationHours);
-        if (parsed.participants?.length) setParticipants(parsed.participants);
-      }
-    } catch {}
-  }, []);
-
-  // Save state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem(
       PLANNER_STORAGE_KEY,
@@ -59,7 +75,6 @@ export default function MeetingPlannerPage() {
     );
   }, [selectedDate, selectedHour, durationHours, participants]);
 
-  // Tomorrow button helper
   const isTomorrowActive = useMemo(() => {
     const tm = new Date();
     tm.setDate(tm.getDate() + 1);
@@ -80,10 +95,9 @@ export default function MeetingPlannerPage() {
     setSelectedDate(new Date().toISOString().slice(0, 10));
   };
 
-  // Toggle selection (allows unselecting an hour)
   const handleToggleHour = (h: number) => {
     if (selectedHour === h) {
-      setSelectedHour(null); // Unselect
+      setSelectedHour(null);
     } else {
       setSelectedHour(h);
     }
@@ -128,6 +142,7 @@ export default function MeetingPlannerPage() {
       const cityName = zone.split("/").pop()?.replace(/_/g, " ") ?? zone;
       setParticipants([...participants, { id: Date.now().toString(), name: cityName, zone }]);
       setNewCity("");
+      setToast({ message: `Added ${cityName}!`, type: "success" });
     } catch {
       setToast({ message: "Failed to resolve location.", type: "warning" });
     }
@@ -135,10 +150,14 @@ export default function MeetingPlannerPage() {
 
   const handleRemoveParticipant = (id: string) => {
     if (participants.length <= 1) {
-      setToast({ message: "You need at least 1 participant.", type: "warning" });
+      setToast({ message: "You need at least 1 location.", type: "warning" });
       return;
     }
+    const target = participants.find((p) => p.id === id);
     setParticipants(participants.filter((p) => p.id !== id));
+    if (target) {
+      setToast({ message: `Removed ${target.name}`, type: "warning" });
+    }
   };
 
   const handleSavePair = () => {
@@ -212,7 +231,7 @@ export default function MeetingPlannerPage() {
             Today
           </button>
 
-          {/* Working Tomorrow Button */}
+          {/* Tomorrow Button */}
           <button
             type="button"
             onClick={handleSetTomorrow}
@@ -225,7 +244,7 @@ export default function MeetingPlannerPage() {
             Tomorrow
           </button>
 
-          {/* Working Clean Date Trigger */}
+          {/* Date Picker Pill */}
           <button
             type="button"
             onClick={() => dateInputRef.current?.showPicker()}
@@ -248,7 +267,7 @@ export default function MeetingPlannerPage() {
             className="sr-only"
           />
 
-          {/* Duration Pill */}
+          {/* Duration Pill: 1h | 2h | 3h */}
           <div className="rounded-full bg-[#FFFFFF] border border-[#DCDAD5] p-1 flex items-center">
             {[1, 2, 3].map((h) => (
               <button
@@ -287,8 +306,8 @@ export default function MeetingPlannerPage() {
       {/* Main Timeline Grid */}
       <div className="overflow-x-auto timespot-scrollbar pb-4">
         <div className="min-w-[1200px]">
-          {/* Header Row */}
-          <div className="grid grid-cols-[180px_repeat(24,1fr)] items-center gap-1.5 mb-2 font-mono text-[11px] font-bold text-[#555555]">
+          {/* Header Row (Clean, no orange underline line) */}
+          <div className="grid grid-cols-[200px_repeat(24,1fr)] items-center gap-1.5 mb-2 font-mono text-[11px] font-bold text-[#555555]">
             <div className="text-xs uppercase font-black text-[#050505]">
               LOCATIONS
             </div>
@@ -308,22 +327,34 @@ export default function MeetingPlannerPage() {
             {timelineData.map(({ participant, hours }) => (
               <div
                 key={participant.id}
-                className="grid grid-cols-[180px_repeat(24,1fr)] items-center gap-1.5"
+                className="grid grid-cols-[200px_repeat(24,1fr)] items-center gap-1.5"
               >
-                {/* Location Label */}
-                <div className="flex items-center gap-2 pr-3">
-                  <span className="h-2 w-2 rounded-full bg-[#F04B0B] shrink-0" />
-                  <div className="overflow-hidden">
-                    <h4 className="text-sm font-black text-[#050505] truncate">
-                      {participant.name}
-                    </h4>
-                    <p className="text-[10px] font-semibold text-[#777777] truncate">
-                      {participant.zone}
-                    </p>
+                {/* Location Label + Working Delete Button */}
+                <div className="flex items-center justify-between pr-3 group">
+                  <div className="flex items-center gap-2 overflow-hidden">
+                    <span className="h-2 w-2 rounded-full bg-[#F04B0B] shrink-0" />
+                    <div className="overflow-hidden">
+                      <h4 className="text-sm font-black text-[#050505] truncate">
+                        {participant.name}
+                      </h4>
+                      <p className="text-[10px] font-semibold text-[#777777] truncate">
+                        {participant.zone}
+                      </p>
+                    </div>
                   </div>
+
+                  {/* Remove Button */}
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveParticipant(participant.id)}
+                    className="h-6 w-6 rounded-full bg-[#D8D7D2] hover:bg-[#F04B0B] hover:text-white text-[#555555] flex items-center justify-center text-xs font-bold transition ml-1 shrink-0"
+                    title={`Remove ${participant.name}`}
+                  >
+                    ✕
+                  </button>
                 </div>
 
-                {/* 24 Hour Pills with Click-to-Toggle Unselect */}
+                {/* 24 Hour Pills (Solid orange when selected, clean bone-grey when inactive) */}
                 {hours.map((h) => {
                   const active = isSelected(h.refHour);
 
