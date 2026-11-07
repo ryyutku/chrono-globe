@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import * as THREE from "three";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getCountry, getAllTimezones } from "countries-and-timezones";
+import tzlookup from "tz-lookup";
 import { GlassCard } from "../ui/GlassCard";
 import LiveClock from "./LiveClock";
 import "./GlobeView.css";
@@ -13,7 +14,7 @@ import "./GlobeView.css";
 const Globe = dynamic(() => import("react-globe.gl"), { ssr: false });
 
 type Pin = { id: string; lat: number; lng: number; tz: string };
-type Selected = { name: string; tzs: string[] };
+type Selected = { name: string; tzs: string[]; lat: number; lng: number };
 
 function HourglassIcon({ className = "" }: { className?: string }) {
     return (
@@ -97,6 +98,22 @@ export default function GlobeView() {
     const [chosenZone, setChosenZone] = useState("");
 
     const allZones = useMemo(() => Object.keys(getAllTimezones()).sort(), []);
+
+    // One label per country, placed at the country's centre
+    const countryLabels = useMemo(
+        () =>
+            countries.map((f) => {
+                const c = center(f.geometry);
+                return {
+                    id: "country-" + f.properties.NAME,
+                    lat: c.lat,
+                    lng: c.lng,
+                    name: f.properties.NAME,
+                    isCountry: true,
+                };
+            }),
+        [countries]
+    );
 
     // Zoom limits: minDistance prevents clipping into surface, maxDistance prevents earth becoming tiny
     const configureControls = () => {
@@ -211,18 +228,40 @@ export default function GlobeView() {
                 onPolygonHover={(p: any) => setHovered(p)}
                 onPolygonClick={(poly: any, _event: MouseEvent, coords: any) => {
                     const country = getCountry(codeOf(poly.properties));
-                    const tzs = country?.timezones ?? [];
-                    setSelected({ name: poly.properties.NAME, tzs });
-                    if (tzs.length) addPin(coords.lat, coords.lng, tzs[0]);
+                    let tzs: string[] = country?.timezones ?? [];
+                    try {
+                        // Use the time zone of the exact spot that was clicked
+                        tzs = [tzlookup(coords.lat, coords.lng)];
+                    } catch {
+                        // If the lookup fails, fall back to the country's zone list
+                    }
+                    setSelected({ name: poly.properties.NAME, tzs, lat: coords.lat, lng: coords.lng });
                 }}
-                labelsData={pins}
+                labelsData={countryLabels}
                 labelLat="lat"
                 labelLng="lng"
-                labelText={(d: any) => d.tz}
-                labelSize={1.3}
-                labelDotRadius={0.5}
-                labelColor={() => "#38bdf8"}
-                labelAltitude={0.015}
+                labelText="name"
+                labelSize={0.6}
+                labelIncludeDot={false}
+                labelColor={() => "rgba(255, 255, 255, 1)"}
+                labelAltitude={0.012}
+                labelResolution={2}
+                htmlElementsData={pins}
+                htmlLat="lat"
+                htmlLng="lng"
+                htmlAltitude={0.01}
+                htmlElement={(d: any) => {
+                    const el = document.createElement("div");
+                    el.style.cssText = "position:relative;width:0;height:0;pointer-events:none;";
+                    el.innerHTML = `
+        <svg width="24" height="32" viewBox="0 0 24 32" style="position:absolute;left:-12px;top:-32px;filter:drop-shadow(0 3px 4px rgba(0,0,0,0.5));">
+            <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 20 12 20s12-11 12-20C24 5.4 18.6 0 12 0z" fill="#f43f5e"/>
+            <circle cx="12" cy="12" r="4.5" fill="#ffffff"/>
+        </svg>
+        <div style="position:absolute;left:16px;top:-26px;white-space:nowrap;font-size:12px;font-weight:600;color:#ffffff;text-shadow:0 1px 4px rgba(0,0,0,0.9);">${d.tz}</div>
+    `;
+                    return el;
+                }}
             />
 
             {/* Left panel: time zone selector and pin list */}
@@ -277,6 +316,19 @@ export default function GlobeView() {
                             ✕
                         </button>
                     </div>
+                    {selected.tzs.length > 0 && (
+                        <div style={{ display: "flex", gap: 8, margin: "8px 0" }}>
+                            <button
+                                className="globe-btn"
+                                onClick={() => addPin(selected.lat, selected.lng, selected.tzs[0])}
+                            >
+                                Pin this location
+                            </button>
+                            <button className="globe-btn globe-btn--ghost" onClick={() => setSelected(null)}>
+                                Don't pin
+                            </button>
+                        </div>
+                    )}
                     {selected.tzs.length === 0 ? (
                         <div className="text-xs text-zinc-400 py-2">No time zone data found.</div>
                     ) : (
