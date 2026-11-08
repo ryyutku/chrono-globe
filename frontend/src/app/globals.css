@@ -1,0 +1,46 @@
+/* globals.css */
+@import "tailwindcss";
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --color-orange: #F04B0B;
+  --color-canvas: #ECEBE6;
+  --color-card-light: #FFFFFF;
+  --color-card-soft: #F4F3EE;
+  --color-card-dark: #0A0A0A;
+  --color-text-main: #050505;
+  --color-text-muted: #555555;
+  --color-border: #DCDAD5;
+}
+
+html, body {
+  background-color: var(--color-orange);
+  color: var(--color-text-main);
+  margin: 0;
+  padding: 0;
+}
+
+/* Crisp Tabular Clock Digits (Prevents Layout Shifting) */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+}
+
+/* Clean Custom Scrollbar for Timeline */
+.timespot-scrollbar::-webkit-scrollbar {
+  height: 6px;
+}
+.timespot-scrollbar::-webkit-scrollbar-track {
+  background: #DFDED9;
+  border-radius: 9999px;
+}
+.timespot-scrollbar::-webkit-scrollbar-thumb {
+  background: #A0A09B;
+  border-radius: 9999px;
+}
+.timespot-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #777772;
+}
