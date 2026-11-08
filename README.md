@@ -1,4 +1,4 @@
-# TimeSpot --- Modern Timezone Engine & Meeting Planner
+# TimeSpot - Modern Timezone Engine & Meeting Planner
 
 > **One time. Two places. No timezone maths.**
 
