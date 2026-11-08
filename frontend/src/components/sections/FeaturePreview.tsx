@@ -41,7 +41,7 @@ export function FeaturePreview() {
           {[
             {
               title: "Instant Search & Resolution",
-              desc: "Query by city, airport abbreviation, or GPS coords. Automatically maps to standard IANA zones.",
+              desc: "Query by city, or airport abbreviation. Automatically maps to standard IANA zones.",
             },
             {
               title: "Canonical IANA Source of Truth",

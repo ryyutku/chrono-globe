@@ -86,9 +86,9 @@ export function Nav() {
               : "text-[#050505]"
           }`}
         >
-          <span className="h-2 w-2 rounded-full bg-[#F04B0B]" />
+          {/* <span className="h-2 w-2 rounded-full bg-[#F04B0B]" />
           <span>UTC Ready</span>
-          <span className="h-2 w-2 rounded-full bg-[#F04B0B]" />
+          <span className="h-2 w-2 rounded-full bg-[#F04B0B]" /> */}
         </div>
 
       </div>

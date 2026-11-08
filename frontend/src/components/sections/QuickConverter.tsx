@@ -12,7 +12,7 @@ import {
   getZoomScheduleUrl,
 } from "@/lib/utils/calendar";
 
-const STORAGE_KEY = "timespot_home_converter_state";
+const STORAGE_KEY = "timespot_home_converter_state_v5";
 
 interface ConverterPersistedState {
   fromQuery: string;
@@ -27,12 +27,12 @@ interface ConverterPersistedState {
 function getInitialConverterState(): ConverterPersistedState {
   if (typeof window === "undefined") {
     return {
-      fromQuery: "New York",
-      toQuery: "London",
-      inputTime: "03:15",
+      fromQuery: "thailand",
+      toQuery: "new york",
+      inputTime: "18:06",
       inputDate: new Date().toISOString().slice(0, 10),
-      resolvedFrom: "America/New_York",
-      resolvedTo: "Europe/London",
+      resolvedFrom: "Asia/Bangkok",
+      resolvedTo: "America/New_York",
       result: null,
     };
   }
@@ -42,25 +42,56 @@ function getInitialConverterState(): ConverterPersistedState {
     if (raw) {
       const parsed = JSON.parse(raw);
       return {
-        fromQuery: parsed.fromQuery || "New York",
-        toQuery: parsed.toQuery || "London",
-        inputTime: parsed.inputTime || "03:15",
+        fromQuery: parsed.fromQuery || "thailand",
+        toQuery: parsed.toQuery || "new york",
+        inputTime: parsed.inputTime || "18:06",
         inputDate: parsed.inputDate || new Date().toISOString().slice(0, 10),
-        resolvedFrom: parsed.resolvedFrom || "America/New_York",
-        resolvedTo: parsed.resolvedTo || "Europe/London",
+        resolvedFrom: parsed.resolvedFrom || "Asia/Bangkok",
+        resolvedTo: parsed.resolvedTo || "America/New_York",
         result: parsed.result || null,
       };
     }
   } catch {}
 
   return {
-    fromQuery: "New York",
-    toQuery: "London",
-    inputTime: "03:15",
+    fromQuery: "thailand",
+    toQuery: "new york",
+    inputTime: "18:06",
     inputDate: new Date().toISOString().slice(0, 10),
-    resolvedFrom: "America/New_York",
-    resolvedTo: "Europe/London",
+    resolvedFrom: "Asia/Bangkok",
+    resolvedTo: "America/New_York",
     result: null,
+  };
+}
+
+// Parses 24-hour target ISO string directly from Python without converting to local viewer timezone
+function parseTargetIso(isoString?: string) {
+  if (!isoString) return { time: "--:--", period: "AM", date: "—" };
+
+  const [datePart, timePartWithOffset] = isoString.split("T");
+  if (!timePartWithOffset) return { time: "--:--", period: "AM", date: "—" };
+
+  const timePart = timePartWithOffset.slice(0, 5); // "HH:MM"
+  const [hStr, mStr] = timePart.split(":");
+  const h24 = parseInt(hStr, 10);
+  const m = mStr;
+
+  const period = h24 >= 12 ? "PM" : "AM";
+  const h12 = h24 % 12 || 12;
+
+  // Format date purely in UTC to prevent day shifts
+  const [year, month, day] = datePart.split("-").map(Number);
+  const dateObj = new Date(Date.UTC(year, month - 1, day));
+  const dateFormatted = dateObj.toLocaleDateString("en-US", {
+    timeZone: "UTC",
+    month: "short",
+    day: "numeric",
+  });
+
+  return {
+    time: `${String(h12).padStart(2, "0")}:${m}`,
+    period,
+    date: dateFormatted,
   };
 }
 
@@ -90,18 +121,107 @@ export function QuickConverter() {
     setInputDate(now.toISOString().slice(0, 10));
   };
 
-  // Run conversion and automatically persist changes
+  // Fluid 24-hour typing handler
+  const handleTimeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    let val = e.target.value;
+    
+    // Allow typing only numbers and colon up to 5 characters
+    if (/^[0-9:]*$/.test(val) && val.length <= 5) {
+      // Auto-insert colon if user types 4 digits like "1200" -> "12:00"
+      if (val.length === 4 && !val.includes(":")) {
+        val = `${val.slice(0, 2)}:${val.slice(2, 4)}`;
+      }
+      setInputTime(val);
+    }
+  };
+
+  // Clamps invalid times cleanly on blur (e.g. 30:00 -> 23:00, 12:80 -> 12:59)
+  const handleTimeBlur = () => {
+    const digits = inputTime.replace(/[^0-9]/g, "");
+    let h = 12;
+    let m = 0;
+
+    if (inputTime.includes(":")) {
+      const parts = inputTime.split(":");
+      h = parseInt(parts[0], 10) || 0;
+      m = parseInt(parts[1], 10) || 0;
+    } else if (digits.length >= 3) {
+      h = parseInt(digits.slice(0, digits.length - 2), 10) || 0;
+      m = parseInt(digits.slice(-2), 10) || 0;
+    } else if (digits.length > 0) {
+      h = parseInt(digits, 10) || 0;
+      m = 0;
+    }
+
+    // Clamp bounds
+    if (h > 23) h = 23;
+    if (h < 0) h = 0;
+    if (m > 59) m = 59;
+    if (m < 0) m = 0;
+
+    setInputTime(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+  };
+
+  // Clickable AM/PM Toggle (Flips time by 12 hours)
+  const handleTogglePeriod = () => {
+    let h = 12;
+    let m = "00";
+
+    if (inputTime.includes(":")) {
+      const parts = inputTime.split(":");
+      h = parseInt(parts[0], 10) || 0;
+      m = parts[1]?.slice(0, 2) || "00";
+    }
+
+    if (h >= 12) {
+      h = h - 12; // Flip to AM
+    } else {
+      h = h + 12; // Flip to PM
+    }
+
+    setInputTime(`${String(h).padStart(2, "0")}:${m.padStart(2, "0")}`);
+  };
+
+  // Automatically compute AM/PM based on the 24-hour hour entered
+  const getFromPeriodInfo = () => {
+    let h = 12;
+    if (inputTime.includes(":")) {
+      h = parseInt(inputTime.split(":")[0], 10) || 0;
+    }
+    const period = h >= 12 ? "PM" : "AM";
+
+    const [year, month, day] = inputDate.split("-").map(Number);
+    const dateObj = new Date(Date.UTC(year, month - 1, day));
+    const formattedDate = dateObj.toLocaleDateString("en-US", {
+      timeZone: "UTC",
+      month: "short",
+      day: "numeric",
+    });
+
+    return { period, date: formattedDate };
+  };
+
+  const fromPeriodInfo = getFromPeriodInfo();
+
+  // Run conversion pipeline
   useEffect(() => {
     if (!fromQuery.trim() || !toQuery.trim()) return;
 
+    // Wait until full time is typed
+    if (!inputTime.includes(":") || inputTime.trim().length < 4) return;
+
+    let isMounted = true;
+
     const timer = setTimeout(async () => {
-      setLoading(true);
+      if (isMounted) setLoading(true);
 
       try {
         const [fromRes, toRes] = await Promise.all([
           resolveZone(fromQuery.trim()),
           resolveZone(toQuery.trim()),
         ]);
+
+        if (!isMounted) return;
 
         const canonicalFrom = fromRes.zone || fromRes.candidates?.[0]?.zone;
         const canonicalTo = toRes.zone || toRes.candidates?.[0]?.zone;
@@ -114,22 +234,30 @@ export function QuickConverter() {
         setResolvedFrom(canonicalFrom);
         setResolvedTo(canonicalTo);
 
-        const safeTime = inputTime.trim().length >= 4 ? inputTime.trim() : "12:00";
+        // Clean 24-hour format validation
+        const [hPart, mPart] = inputTime.split(":");
+        let h = parseInt(hPart, 10) || 0;
+        let m = parseInt(mPart, 10) || 0;
+        if (h > 23) h = 23;
+        if (m > 59) m = 59;
+        const safeTime24 = `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+
         const conv = await convertTime({
-          when: `${inputDate} ${safeTime}`,
+          when: `${inputDate} ${safeTime24}`,
           from_zone: canonicalFrom,
           to_zone: canonicalTo,
         });
 
+        if (!isMounted) return;
+
         setResult(conv);
 
-        // Permanently persist to localStorage
         localStorage.setItem(
           STORAGE_KEY,
           JSON.stringify({
             fromQuery,
             toQuery,
-            inputTime,
+            inputTime: safeTime24,
             inputDate,
             resolvedFrom: canonicalFrom,
             resolvedTo: canonicalTo,
@@ -139,11 +267,14 @@ export function QuickConverter() {
       } catch (err) {
         console.error("Conversion failed:", err);
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     }, 350);
 
-    return () => clearTimeout(timer);
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [fromQuery, toQuery, inputTime, inputDate]);
 
   const handleSaveClock = () => {
@@ -164,23 +295,7 @@ export function QuickConverter() {
     setToQuery(fromQuery);
   };
 
-  const parseTime = (isoString?: string) => {
-    if (!isoString) return { time: "--:--", period: "AM", date: "Nov 7" };
-    const d = new Date(isoString);
-    let hours = d.getHours();
-    const period = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12 || 12;
-    const minutes = String(d.getMinutes()).padStart(2, "0");
-    const dateFormatted = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    return {
-      time: `${String(hours).padStart(2, "0")}:${minutes}`,
-      period,
-      date: dateFormatted,
-    };
-  };
-
-  const fromDisplay = parseTime(`${inputDate}T${inputTime}:00`);
-  const toDisplay = parseTime(result?.target_local);
+  const toDisplay = parseTargetIso(result?.target_local);
 
   const calendarPayload =
     result && resolvedFrom && resolvedTo
@@ -209,8 +324,20 @@ export function QuickConverter() {
         />
       )}
 
-      {/* Side-by-Side Conversion Cards */}
+      {/* Hidden Native Date Input */}
+      <input
+        ref={dateInputRef}
+        type="date"
+        value={inputDate}
+        onChange={(e) => {
+          if (e.target.value) setInputDate(e.target.value);
+        }}
+        className="sr-only"
+      />
+
+      {/* Side-by-Side Conversion Panels */}
       <div className="relative grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] items-center gap-3 sm:gap-4 mt-8">
+        
         {/* FROM CARD */}
         <div className="rounded-[24px] bg-[#FFFFFF] border border-[#DCDAD5] p-7 sm:p-8 shadow-sm flex flex-col justify-between min-h-[260px]">
           <div>
@@ -227,17 +354,35 @@ export function QuickConverter() {
               onChange={(e) => setFromQuery(e.target.value)}
               className="text-3xl sm:text-4xl font-extrabold tracking-tight text-[#050505] bg-transparent border-none p-0 focus:outline-none w-full"
             />
-            <p className="text-xs font-medium text-[#555555] mt-1">
-              {resolvedFrom ? `${resolvedFrom} · ${result?.source_offset || "-05:00"}` : "America/New_York · -05:00"}
+            <p className="text-xs font-medium text-[#555555] mt-1 truncate">
+              {resolvedFrom ? `${resolvedFrom} · ${result?.source_offset || "+07:00"}` : "Asia/Bangkok · +07:00"}
             </p>
           </div>
 
+          {/* Direct 24-Hour Input with Auto AM/PM */}
           <div className="mt-8">
-            <div className="text-6xl sm:text-7xl font-black font-mono tracking-tight text-[#050505] tabular-nums">
-              {fromDisplay.time}
-            </div>
-            <div className="text-sm font-bold text-[#050505] mt-1">
-              {fromDisplay.period} · {fromDisplay.date}
+            <input
+              type="text"
+              inputMode="numeric"
+              value={inputTime}
+              onChange={handleTimeInput}
+              onBlur={handleTimeBlur}
+              placeholder="00:00"
+              className="w-full text-6xl sm:text-7xl font-black font-mono tracking-tight text-[#050505] bg-transparent border-none p-0 focus:outline-none tabular-nums selection:bg-[#F04B0B] selection:text-white"
+              title="Type any 24h time directly (e.g. 12:00, 18:06, 23:45)"
+            />
+            
+            {/* Auto AM/PM Indicator with Clickable Toggle */}
+            <div className="text-sm font-bold text-[#050505] mt-1 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleTogglePeriod}
+                className="rounded-full bg-[#EAE9E4] hover:bg-[#F04B0B] hover:text-white px-2.5 py-0.5 text-xs font-black transition cursor-pointer select-none"
+                title="Click to toggle AM / PM"
+              >
+                {fromPeriodInfo.period} ⇄
+              </button>
+              <span>· {fromPeriodInfo.date}</span>
             </div>
           </div>
         </div>
@@ -270,8 +415,8 @@ export function QuickConverter() {
               onChange={(e) => setToQuery(e.target.value)}
               className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white bg-transparent border-none p-0 focus:outline-none w-full"
             />
-            <p className="text-xs font-medium text-[#888888] mt-1">
-              {resolvedTo ? `${resolvedTo} · ${result?.target_offset || "+00:00"}` : "Europe/London · +00:00"}
+            <p className="text-xs font-medium text-[#888888] mt-1 truncate">
+              {resolvedTo ? `${resolvedTo} · ${result?.target_offset || "-05:00"}` : "America/New_York · -05:00"}
               {loading && <span className="text-[#F04B0B] ml-2 animate-pulse">...</span>}
             </p>
           </div>
@@ -285,11 +430,12 @@ export function QuickConverter() {
             </div>
           </div>
         </div>
+
       </div>
 
       {/* Bottom Controls Bar */}
       <div className="mt-5 flex flex-wrap items-center justify-between gap-3">
-        {/* Date and Time Selector */}
+        {/* Date Selector & Now Button */}
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -302,16 +448,8 @@ export function QuickConverter() {
               <line x1="8" y1="2" x2="8" y2="6" />
               <line x1="3" y1="10" x2="21" y2="10" />
             </svg>
-            <span>{fromDisplay.date} · {inputTime}</span>
+            <span>{fromPeriodInfo.date} · {inputTime}</span>
           </button>
-
-          <input
-            ref={dateInputRef}
-            type="date"
-            value={inputDate}
-            onChange={(e) => setInputDate(e.target.value)}
-            className="sr-only"
-          />
 
           <button
             type="button"
