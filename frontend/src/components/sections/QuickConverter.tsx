@@ -12,7 +12,7 @@ import {
   getZoomScheduleUrl,
 } from "@/lib/utils/calendar";
 
-const STORAGE_KEY = "timespot_home_converter_state_v5";
+const STORAGE_KEY = "timespot_home_converter_state_v6";
 
 interface ConverterPersistedState {
   fromQuery: string;
@@ -64,22 +64,17 @@ function getInitialConverterState(): ConverterPersistedState {
   };
 }
 
-// Parses 24-hour target ISO string directly from Python without converting to local viewer timezone
-function parseTargetIso(isoString?: string) {
-  if (!isoString) return { time: "--:--", period: "AM", date: "—" };
+// Parses pure 24-hour format ("HH:MM") without converting to 12-hour or local browser timezone
+function parseTargetIso24(isoString?: string) {
+  if (!isoString) return { time: "--:--", date: "—" };
 
   const [datePart, timePartWithOffset] = isoString.split("T");
-  if (!timePartWithOffset) return { time: "--:--", period: "AM", date: "—" };
+  if (!timePartWithOffset) return { time: "--:--", date: "—" };
 
-  const timePart = timePartWithOffset.slice(0, 5); // "HH:MM"
-  const [hStr, mStr] = timePart.split(":");
-  const h24 = parseInt(hStr, 10);
-  const m = mStr;
+  // Pure 24-hour format: "HH:MM" (e.g. 18:06, 06:06, 23:45)
+  const time24 = timePartWithOffset.slice(0, 5);
 
-  const period = h24 >= 12 ? "PM" : "AM";
-  const h12 = h24 % 12 || 12;
-
-  // Format date purely in UTC to prevent day shifts
+  // Parse date purely in UTC to prevent day shifting
   const [year, month, day] = datePart.split("-").map(Number);
   const dateObj = new Date(Date.UTC(year, month - 1, day));
   const dateFormatted = dateObj.toLocaleDateString("en-US", {
@@ -89,8 +84,7 @@ function parseTargetIso(isoString?: string) {
   });
 
   return {
-    time: `${String(h12).padStart(2, "0")}:${m}`,
-    period,
+    time: time24,
     date: dateFormatted,
   };
 }
@@ -121,13 +115,10 @@ export function QuickConverter() {
     setInputDate(now.toISOString().slice(0, 10));
   };
 
-  // Fluid 24-hour typing handler
+  // 24-hour input handler
   const handleTimeInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     let val = e.target.value;
-    
-    // Allow typing only numbers and colon up to 5 characters
     if (/^[0-9:]*$/.test(val) && val.length <= 5) {
-      // Auto-insert colon if user types 4 digits like "1200" -> "12:00"
       if (val.length === 4 && !val.includes(":")) {
         val = `${val.slice(0, 2)}:${val.slice(2, 4)}`;
       }
@@ -135,7 +126,7 @@ export function QuickConverter() {
     }
   };
 
-  // Clamps invalid times cleanly on blur (e.g. 30:00 -> 23:00, 12:80 -> 12:59)
+  // Clamps numbers cleanly on blur (00:00 to 23:59)
   const handleTimeBlur = () => {
     const digits = inputTime.replace(/[^0-9]/g, "");
     let h = 12;
@@ -153,7 +144,6 @@ export function QuickConverter() {
       m = 0;
     }
 
-    // Clamp bounds
     if (h > 23) h = 23;
     if (h < 0) h = 0;
     if (m > 59) m = 59;
@@ -162,7 +152,7 @@ export function QuickConverter() {
     setInputTime(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
   };
 
-  // Clickable AM/PM Toggle (Flips time by 12 hours)
+  // Toggle AM/PM helper by shifting 12 hours
   const handleTogglePeriod = () => {
     let h = 12;
     let m = "00";
@@ -174,15 +164,14 @@ export function QuickConverter() {
     }
 
     if (h >= 12) {
-      h = h - 12; // Flip to AM
+      h = h - 12;
     } else {
-      h = h + 12; // Flip to PM
+      h = h + 12;
     }
 
     setInputTime(`${String(h).padStart(2, "0")}:${m.padStart(2, "0")}`);
   };
 
-  // Automatically compute AM/PM based on the 24-hour hour entered
   const getFromPeriodInfo = () => {
     let h = 12;
     if (inputTime.includes(":")) {
@@ -203,11 +192,9 @@ export function QuickConverter() {
 
   const fromPeriodInfo = getFromPeriodInfo();
 
-  // Run conversion pipeline
+  // Conversion Pipeline
   useEffect(() => {
     if (!fromQuery.trim() || !toQuery.trim()) return;
-
-    // Wait until full time is typed
     if (!inputTime.includes(":") || inputTime.trim().length < 4) return;
 
     let isMounted = true;
@@ -234,7 +221,6 @@ export function QuickConverter() {
         setResolvedFrom(canonicalFrom);
         setResolvedTo(canonicalTo);
 
-        // Clean 24-hour format validation
         const [hPart, mPart] = inputTime.split(":");
         let h = parseInt(hPart, 10) || 0;
         let m = parseInt(mPart, 10) || 0;
@@ -295,7 +281,8 @@ export function QuickConverter() {
     setToQuery(fromQuery);
   };
 
-  const toDisplay = parseTargetIso(result?.target_local);
+  // Clean 24-hour target display
+  const toDisplay = parseTargetIso24(result?.target_local);
 
   const calendarPayload =
     result && resolvedFrom && resolvedTo
@@ -359,7 +346,6 @@ export function QuickConverter() {
             </p>
           </div>
 
-          {/* Direct 24-Hour Input with Auto AM/PM */}
           <div className="mt-8">
             <input
               type="text"
@@ -369,10 +355,9 @@ export function QuickConverter() {
               onBlur={handleTimeBlur}
               placeholder="00:00"
               className="w-full text-6xl sm:text-7xl font-black font-mono tracking-tight text-[#050505] bg-transparent border-none p-0 focus:outline-none tabular-nums selection:bg-[#F04B0B] selection:text-white"
-              title="Type any 24h time directly (e.g. 12:00, 18:06, 23:45)"
+              title="Type 24-hour time (e.g. 18:06 or 03:15)"
             />
             
-            {/* Auto AM/PM Indicator with Clickable Toggle */}
             <div className="text-sm font-bold text-[#050505] mt-1 flex items-center gap-2">
               <button
                 type="button"
@@ -399,7 +384,7 @@ export function QuickConverter() {
           </button>
         </div>
 
-        {/* TO CARD */}
+        {/* TO CARD (Pure 24-Hour Display) */}
         <div className="rounded-[24px] bg-[#0A0A0A] text-white p-7 sm:p-8 shadow-md flex flex-col justify-between min-h-[260px]">
           <div>
             <div className="flex items-center gap-2 mb-2">
@@ -421,12 +406,13 @@ export function QuickConverter() {
             </p>
           </div>
 
+          {/* 24-Hour Formatted Converted Time */}
           <div className="mt-8">
             <div className="text-6xl sm:text-7xl font-black font-mono tracking-tight text-white tabular-nums">
               {toDisplay.time}
             </div>
             <div className="text-sm font-bold text-[#888888] mt-1">
-              {toDisplay.period} · {toDisplay.date}
+              {toDisplay.date}
             </div>
           </div>
         </div>
